@@ -95,18 +95,22 @@ with open('datos.csv','r',encoding='utf-8') as datos_csv:
         soup = BeautifulSoup(html, 'html.parser')
         for link_tag in soup.find_all('a'):
             href = str(link_tag.get('href'))
-            tag='/infolegInternet/verNorma.do?id='
+            tag='/infolegInternet/verNorma.do'
             if(href.startswith(tag)):
-                links.append(href[len(tag):])
+                link = href[href.index('?id=')+4:]
+                print(f"link: {link}")
+                links.append(link)
         return links
 
     def get_mods(ley):
         mods = []
         mod_by = []
         if ley['modifica_a'] != '' and int(ley['modifica_a']) > 0:
+            print(f"checking mods for {ley['id_infoleg']}")
             with requests.get(f"https://servicios.infoleg.gob.ar/infolegInternet/verVinculos.do?modo=1&id={ley['id_infoleg']}") as r:
                 mods = get_links(r.text)
         if ley['modificada_por'] != '' and int(ley['modificada_por']) > 0:
+            print(f"checking mod_by for {ley['id_infoleg']}")
             with requests.get(f"https://servicios.infoleg.gob.ar/infolegInternet/verVinculos.do?modo=2&id={ley['id_infoleg']}") as r:
                 mod_by = get_links(r.text)
         return (mods, mod_by)
@@ -165,7 +169,7 @@ with open('datos.csv','r',encoding='utf-8') as datos_csv:
                     'titulo': ley['titulo_sumario'],
                     'resumen': ley['texto_resumido'],
                     'mods': mods,
-                    'mod-by': mod_by,
+                    'mod_by': mod_by,
                 }
             )
 
