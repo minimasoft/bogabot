@@ -1,9 +1,19 @@
 from bs4 import BeautifulSoup
+from pathlib import Path
 import json
+import gzip
 import requests
 import markdown
 
+
+def load_json_gz(fpath):
+    with gzip.open(fpath,'rt',encoding='utf-8') as jf:
+        return json.load(jf)
+
 MODEL="huihui_ai/qwen2.5-1m-abliterated:14b"
+
+law_ref = load_json_gz(Path('../data/leyes_ref.json.gz'))
+decree_ref = load_json_gz(Path('../data/decretos_ref.json.gz'))
 
 def query_ollama(model_name, context, query, max_context=512*1024):
     try:
@@ -70,12 +80,34 @@ def get_details(url, session, do_brief=True, do_ref=True):
         if len(law_list) > 0:
             data['ref'] += "<li>Leyes:<ul>\n"
             for law in law_list:
-                data['ref'] += f"<li>{law}</li>\n"
+                data['ref'] += f"<li>{law}"
+                if str(law) in law_ref:
+                    data['ref']+= "<ul>\n"
+                    matches = law_ref[str(law)]
+                    for year in matches:
+                        for law_data in matches[year]:
+                            data['ref'] += f"<li>infoleg {law} - {year} - <a href=https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id={law_data['id']}>{law_data['id']}</a>: {law_data['resumen']}</li>\n"
+                    data['ref'] += "</ul>"
+                data['ref'] += "</li>\n"
             data['ref'] += "</li></ul>\n"
         if len(decree_list) > 0:
             data['ref'] += "<li>Decretos:<ul>\n"
             for dec in decree_list:
-                data['ref'] += f"<li>{dec}</li>\n"
+                data['ref'] += f"<li>{dec}"
+                dec_n = dec.split('/')[0]
+                dec_y = dec.split('/')[1]
+                if str(dec_n) not in decree_ref:
+                    if len(dec_n) == 4 and dec_n.startswith('20'):
+                        dec_n = dec_n[2:]
+                if str(dec_n) in decree_ref:
+                    decree_n = decree_ref[str(dec_n)]
+                    if str(dec_y) in decree_n:
+                        data['ref']+= "<ul>\n"
+                        matches = decree_n[str(dec_y)]
+                        for decree in matches:
+                            data['ref'] += f"<li>infoleg {dec} - <a href=https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id={decree['id']}>{decree['id']}</a>: {decree['resumen']}</li>\n"
+                        data['ref'] += "</ul>"
+                data['ref'] += "</li>\n"
             data['ref'] += "</li></ul>\n"
         if len(constitution_list) > 0:
             data['ref'] += "<li>Art. Constitucion:<ul>\n"
