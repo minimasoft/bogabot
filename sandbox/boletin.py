@@ -65,16 +65,26 @@ def get_details(url, session, do_brief=True, do_ref=True):
     if do_ref:
         raw_law_list = query_ollama(MODEL, body, "Crea una lista en JSON de numeros de ley (sin articulos). No incluyas decretos, ni resoluciones. Sin comentarios, sin repetidos y sin detalles. Si no se mencionan '[]'. No incluyas markdown para indicar que es JSON")
         print(raw_law_list)
-        law_list = json.loads(raw_law_list)
-        #query law ref
+        try:
+            law_list = json.loads(raw_law_list)
+        except json.decoder.JSONDecodeError:
+            law_list = []
+            print('json error')
+
         raw_decree_list = query_ollama(MODEL, body, "Crea una lista en JSON de decretos mencionados, el formato es '\"123/2024\"' donde '123' es el numero de decreto y '2024' el año. No incluyas leyes, ni resoluciones. Sin comentarios, sin repetidos y sin detalles. Si no se mencionan '[]', No incluyas markdown para indicar que es JSON")
         print(raw_decree_list)
-        decree_list = json.loads(raw_decree_list)
-        #query decree list
+        try:
+            decree_list = json.loads(raw_decree_list)
+        except json.decoder.JSONDecodeError:
+            decree_list = []
+            print('json error')
         raw_constitution_list = query_ollama(MODEL, body, "Crea una lista en JSON de numero de articulo de la constitucion mencionados. No incluyas decretos, ni resoluciones. Sin comentarios, sin repetidos y sin detalles. Si no se mencionan '[]'. No incluyas markdown para indicar que es JSON")
         print(raw_constitution_list)
-        constitution_list = json.loads(raw_constitution_list)
-        #query constitution list
+        try:
+            constitution_list = json.loads(raw_constitution_list)
+        except json.decoder.JSONDecodeError:
+            constitution_list = []
+            print('json error')
 
         data['ref'] = "<ul>\n"
         if len(law_list) > 0:
@@ -94,19 +104,20 @@ def get_details(url, session, do_brief=True, do_ref=True):
             data['ref'] += "<li>Decretos:<ul>\n"
             for dec in decree_list:
                 data['ref'] += f"<li>{dec}"
-                dec_n = dec.split('/')[0]
-                dec_y = dec.split('/')[1]
-                if str(dec_n) not in decree_ref:
-                    if len(dec_n) == 4 and dec_n.startswith('20'):
-                        dec_n = dec_n[2:]
-                if str(dec_n) in decree_ref:
-                    decree_n = decree_ref[str(dec_n)]
-                    if str(dec_y) in decree_n:
-                        data['ref']+= "<ul>\n"
-                        matches = decree_n[str(dec_y)]
-                        for decree in matches:
-                            data['ref'] += f"<li>infoleg {dec} - <a href=https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id={decree['id']}>{decree['id']}</a>: {decree['resumen']}</li>\n"
-                        data['ref'] += "</ul>"
+                if '/' in dec:
+                    dec_n = dec.split('/')[0]
+                    dec_y = dec.split('/')[1]
+                    if str(dec_n) not in decree_ref:
+                        if len(dec_n) == 4 and dec_n.startswith('20'):
+                            dec_n = dec_n[2:]
+                    if str(dec_n) in decree_ref:
+                        decree_n = decree_ref[str(dec_n)]
+                        if str(dec_y) in decree_n:
+                            data['ref']+= "<ul>\n"
+                            matches = decree_n[str(dec_y)]
+                            for decree in matches:
+                                data['ref'] += f"<li>infoleg {dec} - <a href=https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id={decree['id']}>{decree['id']}</a>: {decree['resumen']}</li>\n"
+                            data['ref'] += "</ul>"
                 data['ref'] += "</li>\n"
             data['ref'] += "</li></ul>\n"
         if len(constitution_list) > 0:
