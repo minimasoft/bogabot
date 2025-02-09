@@ -47,14 +47,44 @@ def get_details(url, session, do_brief=True, do_ref=True):
     }
     
     if do_brief:
-        response = query_ollama(MODEL, body, "Crea un resumen del siguiente texto, siempre menciona a todos los firmantes que son los nombres al final, si es una designacion solo menciona a las personas involucradas y sus roles, si hay datos tabulados solo menciona su existencia, no ofrezcas mas ayuda, la respuesta es final, el resumen no debe tener mas de 500 caracteres, ignorar tags HTML.")
-        data['brief'] = response
+        response = query_ollama(MODEL, body, "Crea un resumen del siguiente texto, siempre menciona a todos los firmantes que son los nombres al final, si es una designacion solo menciona a las personas involucradas y sus roles, si hay datos tabulados solo menciona su existencia, no ofrezcas mas ayuda, la respuesta es final, el resumen no debe tener mas de 600 caracteres, ignorar tags HTML.")
+        refined_response = query_ollama(MODEL, response, "Corrije errores ortograficos en el siguiente texto. Si no hay errores solo copia el texto. No ofrezcas mas ayuda ni hagas aclaraciones")
+        data['brief'] = refined_response
         print(response)
     
     if do_ref:
-        response = query_ollama(MODEL, body, "Crea una lista de numeros de ley (sin articulos), decretos (sin articulos, con fecha si la menciona) y numeros de articulo solo si se refiere a la constitucion. Sin comentarios, sin repetidos y sin detalles.")
-        data['ref'] = response
-        print(response)
+        raw_law_list = query_ollama(MODEL, body, "Crea una lista en JSON de numeros de ley (sin articulos). No incluyas decretos, ni resoluciones. Sin comentarios, sin repetidos y sin detalles. Si no se mencionan '[]'. No incluyas markdown para indicar que es JSON")
+        print(raw_law_list)
+        law_list = json.loads(raw_law_list)
+        #query law ref
+        raw_decree_list = query_ollama(MODEL, body, "Crea una lista en JSON de decretos mencionados, el formato es '\"123/2024\"' donde '123' es el numero de decreto y '2024' el año. No incluyas leyes, ni resoluciones. Sin comentarios, sin repetidos y sin detalles. Si no se mencionan '[]', No incluyas markdown para indicar que es JSON")
+        print(raw_decree_list)
+        decree_list = json.loads(raw_decree_list)
+        #query decree list
+        raw_constitution_list = query_ollama(MODEL, body, "Crea una lista en JSON de numero de articulo de la constitucion mencionados. No incluyas decretos, ni resoluciones. Sin comentarios, sin repetidos y sin detalles. Si no se mencionan '[]'. No incluyas markdown para indicar que es JSON")
+        print(raw_constitution_list)
+        constitution_list = json.loads(raw_constitution_list)
+        #query constitution list
+
+        data['ref'] = "<ul>\n"
+        if len(law_list) > 0:
+            data['ref'] += "<li>Leyes:<ul>\n"
+            for law in law_list:
+                data['ref'] += f"<li>{law}</li>\n"
+            data['ref'] += "</li></ul>\n"
+        if len(decree_list) > 0:
+            data['ref'] += "<li>Decretos:<ul>\n"
+            for dec in decree_list:
+                data['ref'] += f"<li>{dec}</li>\n"
+            data['ref'] += "</li></ul>\n"
+        if len(constitution_list) > 0:
+            data['ref'] += "<li>Art. Constitucion:<ul>\n"
+            for art in constitution_list:
+                data['ref'] += f"<li>{art}</li>\n"
+            data['ref'] += "</li></ul>\n"
+        data['ref'] += "</ul>\n"
+
+        print(data['ref'])
 
     return data
 
