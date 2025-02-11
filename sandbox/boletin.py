@@ -139,7 +139,7 @@ def get_details(url, session, do_brief=True, do_ref=True):
             context_as_text += "\n\n-------\n\n"
         context_as_text += "Norma actual:\n"
         context_as_text += body
-        analysis = query_ollama(MODEL, context_as_text, "Explicar como la norma actual (la ultima en la lista) afecta o impacta sobre las normas anteriores. En caso de no tener impacto o afectarlas explica la razon por la cual se mencionan.")
+        analysis = query_ollama(MODEL, context_as_text, "Explicar como la norma actual (la ultima en la lista) afecta o impacta sobre las normas anteriores. En caso de derogar o modificar explica lo que dictaba la norma anterior. En caso de no tener impacto o afectarlas explica la razon por la cual se mencionan.")
         data['analysis'] = analysis
         print(analysis)
 
@@ -212,13 +212,13 @@ def get_day(day:int ,month:int , year:int):
     return results
 
 
-#results = get_day(11,2,2025)
-#print("\n\nSaving JSON just in case...\n\n")
-#with open('output.json', 'w', encoding='utf-8') as json_file:
-#    json.dump(list(results.values()), json_file, indent=4, ensure_ascii=False)
+results = get_day(11,2,2025)
+print("\n\nSaving JSON just in case...\n\n")
+with open('output.json', 'w', encoding='utf-8') as json_file:
+    json.dump(results), json_file, indent=2, ensure_ascii=False)
 
-with open('output.json', 'r', encoding='utf-8') as json_file:
-    results = json.load(json_file)
+#with open('output.json', 'r', encoding='utf-8') as json_file:
+#    results = json.load(json_file)
 
 with open('output.html','w') as html_o:
     html_o.write("""<html>
@@ -232,7 +232,7 @@ body {
 </style>
 </head>
 <body>""")
-    for result in results: #.values():
+    for result in results.values():
         html_o.write(f"<hr><br><h2>{result['subject']}</h2><h3>{result['name']}</h3><h3>{result['official_id']}</h3>desde: <a href=https://www.boletinoficial.gob.ar{result['link']}>{result['link']}</a>\n")
         if 'brief' in result['data']:
             brief = result['data']['brief']
@@ -243,9 +243,9 @@ body {
             ref = markdown.markdown(ref)        
             html_o.write(f"<br><details><summary>Referencias</summary>{ref}</details>\n")
         if 'analysis' in result['data']:
-            analysis = result['data']['ref']
+            analysis = result['data']['analysis']
             analysis = markdown.markdown(analysis)        
-            html_o.write(f"<br><details><summary>Analisis de bogabot:</summary>{analysis}</details>\n")
+            html_o.write(f"<br><details><summary>Análisis de bogabot</summary>{analysis}</details>\n")
         html_o.write(f"<br><details><summary>Texto original</summary>{result['data']['full_text']}</details>\n")
     html_o.write('\n</body></html>\n')
 
