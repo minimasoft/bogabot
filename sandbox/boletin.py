@@ -215,7 +215,7 @@ def get_day(day:int ,month:int , year:int):
 results = get_day(11,2,2025)
 print("\n\nSaving JSON just in case...\n\n")
 with open('output.json', 'w', encoding='utf-8') as json_file:
-    json.dump(results), json_file, indent=2, ensure_ascii=False)
+    json.dump(results, json_file, indent=2, ensure_ascii=False)
 
 #with open('output.json', 'r', encoding='utf-8') as json_file:
 #    results = json.load(json_file)
