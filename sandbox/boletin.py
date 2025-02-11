@@ -21,7 +21,7 @@ def query_ollama(model_name, context, query, max_context=512*1024):
         base_url = "http://localhost:11434/api/generate"
 
         # Prepare the prompt by combining context and query
-        prompt = f"Context:\n{context}\n\nQuery:\n{query}"
+        prompt = f"Contexto:\n'''\n{context}\n'''\n\nTarea:\n'''\n{query}\n'''\n"
 
         # Prepare the payload for the request
         payload = {
@@ -63,7 +63,7 @@ def get_details(url, session, do_brief=True, do_ref=True):
         print(response)
     
     if do_ref:
-        raw_law_list = query_ollama(MODEL, body, "Crea una lista en JSON de numeros de ley (sin articulos). No incluyas decretos, ni resoluciones. Sin comentarios, sin repetidos y sin detalles. Si no se mencionan '[]'. No incluyas markdown para indicar que es JSON")
+        raw_law_list = query_ollama(MODEL, body, "Crear una lista en formato JSON de numeros de ley (sin articulos). Limitaciones: - Solo deben ser leyes, ignorar decretos, resoluciones, comunicaciones u otro tipo de normas. - Sin comentarios. - Sin repetidos - Sin detalles - En caso de no existir leyes mencionadas la respuesta es un vector vacio: '[]'. - No incluir markdown para indicar que es JSON.")
         print(raw_law_list)
         try:
             law_list = json.loads(raw_law_list)
@@ -71,22 +71,16 @@ def get_details(url, session, do_brief=True, do_ref=True):
             law_list = []
             print('json error')
 
-        raw_decree_list = query_ollama(MODEL, body, "Crea una lista en JSON de decretos mencionados, el formato es '\"123/2024\"' donde '123' es el numero de decreto y '2024' el año. No incluyas leyes, ni resoluciones. Sin comentarios, sin repetidos y sin detalles. Si no se mencionan '[]', No incluyas markdown para indicar que es JSON")
+        raw_decree_list = query_ollama(MODEL, body, "Crear una lista en JSON de decretos mencionados, el formato es '\"123/2024\"' donde '123' es el numero de decreto y '2024' el año. Reglas: - No incluir leyes, resoluciones ni otro tipo de normas. - Sin comentarios. - Sin repetidos - Sin detalles. - Si no se mencionan decretos la respuesta es un vector vacio: '[]'. - No incluir markdown para indicar que es JSON.")
         print(raw_decree_list)
         try:
             decree_list = json.loads(raw_decree_list)
         except json.decoder.JSONDecodeError:
             decree_list = []
             print('json error')
-        raw_constitution_list = query_ollama(MODEL, body, "Crea una lista en JSON de numero de articulo de la constitucion mencionados. No incluyas decretos, ni resoluciones. Sin comentarios, sin repetidos y sin detalles. Si no se mencionan '[]'. No incluyas markdown para indicar que es JSON")
-        print(raw_constitution_list)
-        try:
-            constitution_list = json.loads(raw_constitution_list)
-        except json.decoder.JSONDecodeError:
-            constitution_list = []
-            print('json error')
 
         data['ref'] = "<ul>\n"
+        info_legs = set()  # lol
         if len(law_list) > 0:
             data['ref'] += "<li>Leyes:<ul>\n"
             for law in law_list:
@@ -97,6 +91,7 @@ def get_details(url, session, do_brief=True, do_ref=True):
                     for year in matches:
                         for law_data in matches[year]:
                             data['ref'] += f"<li>infoleg {law} - {year} - <a href=https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id={law_data['id']}>{law_data['id']}</a>: {law_data['resumen']}</li>\n"
+                            info_legs.add(str(law_data['id']))
                     data['ref'] += "</ul>"
                 data['ref'] += "</li>\n"
             data['ref'] += "</li></ul>\n"
@@ -117,17 +112,37 @@ def get_details(url, session, do_brief=True, do_ref=True):
                             matches = decree_n[str(dec_y)]
                             for decree in matches:
                                 data['ref'] += f"<li>infoleg {dec} - <a href=https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id={decree['id']}>{decree['id']}</a>: {decree['resumen']}</li>\n"
+                                info_legs.add(str(decree['id']))
                             data['ref'] += "</ul>"
                 data['ref'] += "</li>\n"
-            data['ref'] += "</li></ul>\n"
-        if len(constitution_list) > 0:
-            data['ref'] += "<li>Art. Constitucion:<ul>\n"
-            for art in constitution_list:
-                data['ref'] += f"<li>{art}</li>\n"
             data['ref'] += "</li></ul>\n"
         data['ref'] += "</ul>\n"
 
         print(data['ref'])
+        # now let's make a killer query with all references :D
+        full_context = []
+        for infoleg_id in info_legs:
+            infoleg_file = Path(f"../data/infoleg_html/{infoleg_id[-1]}/{infoleg_id}.html")
+            if infoleg_file.exists():
+                with open(infoleg_file, 'r', encoding='utf-8') as infoleg_html:
+                    info_soup = BeautifulSoup(infoleg_html, 'html.parser')
+                    for div in info_soup.find_all('div'):
+                        text = div.text
+                        if len(text.strip())>1:
+                            full_context.append(text)
+                            print(f"context loaded: {infoleg_file}")
+            else:
+                print(f"context not found: {infoleg_file}")
+        context_as_text = ""
+        for context in full_context:
+            context_as_text += context
+            context_as_text += "\n\n-------\n\n"
+        context_as_text += "Norma actual:\n"
+        context_as_text += body
+        analysis = query_ollama(MODEL, context_as_text, "Explicar como la norma actual (la ultima en la lista) afecta o impacta sobre las normas anteriores. En caso de no tener impacto o afectarlas explica la razon por la cual se mencionan.")
+        data['analysis'] = analysis
+        print(analysis)
+
 
     return data
 
@@ -149,7 +164,7 @@ def get_day(day:int ,month:int , year:int):
     # Parse the HTML content with BeautifulSoup
     soup = BeautifulSoup(html_content, 'html.parser')
 
-    results = []
+    results = {}
 
     # Find all div elements with class "col-md-12"
     for item_div in soup.find_all('div', {'class': 'col-md-12'}):
@@ -158,6 +173,8 @@ def get_day(day:int ,month:int , year:int):
         if a_tag:
             link = a_tag['href']
         else:
+            continue
+        if link in results:
             continue
 
         # Extract subject from p with class "item"
@@ -178,27 +195,30 @@ def get_day(day:int ,month:int , year:int):
         else:
             official_id = ''
 
+        do_ref = True
+        if len(official_id) < 1 or official_id[:2] in ["DI","RE"]:
+            do_ref = False
         # Append the extracted data as a dictionary
         element = {
             'subject': subject,
             'link': link,
             'name': name,
             'official_id': official_id,
-            'data': get_details(f"https://www.boletinoficial.gob.ar{link}", session)
+            'data': get_details(f"https://www.boletinoficial.gob.ar{link}", session, do_ref=do_ref)
         }
-        results.append(element)
+        results[link] = element
         print(f"\n\n-- subject: {subject} name: {name} id: {official_id}")
 
     return results
 
 
-results = get_day(7,2,2025)
-print("\n\nSaving JSON just in case...\n\n")
-with open('output.json', 'w', encoding='utf-8') as json_file:
-    json.dump(results, json_file, indent=4, ensure_ascii=False)
+#results = get_day(11,2,2025)
+#print("\n\nSaving JSON just in case...\n\n")
+#with open('output.json', 'w', encoding='utf-8') as json_file:
+#    json.dump(list(results.values()), json_file, indent=4, ensure_ascii=False)
 
-#with open('output.json', 'r', encoding='utf-8') as json_file:
-#    results = json.load(json_file)
+with open('output.json', 'r', encoding='utf-8') as json_file:
+    results = json.load(json_file)
 
 with open('output.html','w') as html_o:
     html_o.write("""<html>
@@ -212,7 +232,7 @@ body {
 </style>
 </head>
 <body>""")
-    for result in results:
+    for result in results: #.values():
         html_o.write(f"<hr><br><h2>{result['subject']}</h2><h3>{result['name']}</h3><h3>{result['official_id']}</h3>desde: <a href=https://www.boletinoficial.gob.ar{result['link']}>{result['link']}</a>\n")
         if 'brief' in result['data']:
             brief = result['data']['brief']
@@ -222,6 +242,10 @@ body {
             ref = result['data']['ref']
             ref = markdown.markdown(ref)        
             html_o.write(f"<br><details><summary>Referencias</summary>{ref}</details>\n")
+        if 'analysis' in result['data']:
+            analysis = result['data']['ref']
+            analysis = markdown.markdown(analysis)        
+            html_o.write(f"<br><details><summary>Analisis de bogabot:</summary>{analysis}</details>\n")
         html_o.write(f"<br><details><summary>Texto original</summary>{result['data']['full_text']}</details>\n")
     html_o.write('\n</body></html>\n')
 
