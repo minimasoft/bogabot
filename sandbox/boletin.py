@@ -14,6 +14,8 @@ MODEL="huihui_ai/qwen2.5-1m-abliterated:14b"
 
 law_ref = load_json_gz(Path('../data/leyes_ref.json.gz'))
 decree_ref = load_json_gz(Path('../data/decretos_ref.json.gz'))
+with open("../data/mapa_context.txt","r",encoding="utf-8") as fp:
+    mapa_context = f"Estos son los cargos conocidos:\n'''{fp.read()}\n'''\n\n"
 
 def query_ollama(model_name, context, query, max_context=512*1024):
     try:
@@ -47,6 +49,7 @@ def get_details(url, session, do_brief=True, do_ref=True):
     with session.get(url) as r:
         html_content = r.text
 
+
     soup = BeautifulSoup(html_content, 'html.parser')
 
     cuerpo_div = soup.find('div', {'id': 'cuerpoDetalleAviso'}).contents[1]
@@ -57,7 +60,7 @@ def get_details(url, session, do_brief=True, do_ref=True):
     }
     
     if do_brief:
-        response = query_ollama(MODEL, body, "Crea un resumen del siguiente texto, siempre menciona a todos los firmantes que son los nombres al final, si es una designacion solo menciona a las personas involucradas y sus roles, si hay datos tabulados solo menciona su existencia, no ofrezcas mas ayuda, la respuesta es final, el resumen no debe tener mas de 600 caracteres, ignorar tags HTML.")
+        response = query_ollama(MODEL, mapa_context + body, "Crea un resumen del siguiente texto, siempre menciona a todos los firmantes que son los nombres al final, si es una designacion solo menciona a las personas involucradas y sus roles, si hay datos tabulados solo menciona su existencia, no ofrezcas mas ayuda, la respuesta es final, el resumen no debe tener mas de 600 caracteres, ignorar tags HTML.")
         refined_response = query_ollama(MODEL, response, "Corrije errores ortograficos en el siguiente texto. Si no hay errores solo copia el texto. No ofrezcas mas ayuda ni hagas aclaraciones")
         data['brief'] = refined_response
         print(response)
@@ -130,16 +133,17 @@ def get_details(url, session, do_brief=True, do_ref=True):
                         text = div.text
                         if len(text.strip())>1:
                             full_context.append(text)
-                            print(f"context loaded: {infoleg_file}")
+                    print(f"context loaded: {infoleg_file}")
             else:
                 print(f"context not found: {infoleg_file}")
         context_as_text = ""
         for context in full_context:
             context_as_text += context
             context_as_text += "\n\n-------\n\n"
+        context_as_text += mapa_context
         context_as_text += "Norma actual:\n"
         context_as_text += body
-        analysis = query_ollama(MODEL, context_as_text, "Explicar como la norma actual (la ultima en la lista) afecta o impacta sobre las normas anteriores. En caso de derogar o modificar explica lo que dictaba la norma anterior. En caso de no tener impacto o afectarlas explica la razon por la cual se mencionan.")
+        analysis = query_ollama(MODEL, context_as_text, "Explicar como la norma actual (la ultima en la lista) afecta o impacta sobre las normas anteriores. En caso de derogar o modificar explica lo que dictaba la norma anterior. En caso de no tener impacto o afectarlas explica la razon por la cual se mencionan. En caso de tratarse de un nombramiento descarta lo anterior y simplemente explica que persona queda en cada cargo y que persona se fue.")
         data['analysis'] = analysis
         print(analysis)
 
@@ -212,15 +216,23 @@ def get_day(day:int ,month:int , year:int):
     return results
 
 
-results = get_day(11,2,2025)
-print("\n\nSaving JSON just in case...\n\n")
-with open('output.json', 'w', encoding='utf-8') as json_file:
-    json.dump(results, json_file, indent=2, ensure_ascii=False)
+# Get BO and generate metadata
+day=24
+month=2
+year=2025
+json_file_path = Path(f"bo{year-2000}{month:02}{day:02}.json")
 
-#with open('output.json', 'r', encoding='utf-8') as json_file:
-#    results = json.load(json_file)
+if json_file_path.exists() == False:
+    results = get_day(day,month,year)
+    with open(json_file_path, "w", encoding='utf-8') as json_file:
+        json.dump(results, json_file, indent=2, ensure_ascii=False)
+else: # Loads existing data if available
+    with open(json_file_path, 'r', encoding='utf-8') as json_file:
+        results = json.load(json_file)
 
-with open('output.html','w') as html_o:
+# Gen HTML
+
+with open(f"bo{year-2000}{month:02}{day:02}.html",'w') as html_o:
     html_o.write("""<html>
 <head>
 <meta charset="UTF-8">
