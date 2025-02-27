@@ -52,8 +52,12 @@ def get_details(url, session, do_brief=True, do_ref=True):
 
     soup = BeautifulSoup(html_content, 'html.parser')
 
+    for script in soup(['script', 'meta', 'link', 'style']):
+        script.decompose()  # Removes the tag completely from the tree
+
     cuerpo_div = soup.find('div', {'id': 'cuerpoDetalleAviso'}).contents[1]
     body = str(cuerpo_div) if cuerpo_div else None  # Preserve the HTML structure
+    
 
     data = {
         "full_text": body
@@ -143,7 +147,7 @@ def get_details(url, session, do_brief=True, do_ref=True):
         context_as_text += mapa_context
         context_as_text += "Norma actual:\n"
         context_as_text += body
-        analysis = query_ollama(MODEL, context_as_text, "Explicar como la norma actual (la ultima en la lista) afecta o impacta sobre las normas anteriores. En caso de derogar o modificar explica lo que dictaba la norma anterior. En caso de no tener impacto o afectarlas explica la razon por la cual se mencionan. En caso de tratarse de un nombramiento descarta lo anterior y simplemente explica que persona queda en cada cargo y que persona se fue.")
+        analysis = query_ollama(MODEL, context_as_text, "Explicar como la norma actual (la ultima en la lista) afecta o impacta sobre las normas anteriores. En caso de modificar leyes anteriores explicar los beneficios afectados de la ley anterior. En caso de no tener impacto o afectarlas no hace falta explicar. En caso de tratarse de un nombramiento descarta lo anterior y simplemente explica que persona queda en cada cargo y que persona se fue. En caso de no haber nombramientos o cambios de cargos no explicar ni mencionar el tema.")
         data['analysis'] = analysis
         print(analysis)
 
@@ -217,7 +221,7 @@ def get_day(day:int ,month:int , year:int):
 
 
 # Get BO and generate metadata
-day=24
+day=26
 month=2
 year=2025
 json_file_path = Path(f"bo{year-2000}{month:02}{day:02}.json")
@@ -240,24 +244,45 @@ with open(f"bo{year-2000}{month:02}{day:02}.html",'w') as html_o:
 <style>
 body {
     font-family: 'Noto Sans Mono';
+    font-size: 16px;
 }
+
+table {
+  border: 1px solid black;
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 1000px;
+}
+
+td {
+  border: 1px solid black;
+  border-collapse: collapse;
+  vertical-align: top;
+  text-align: left;
+  padding: 10px;
+}
+
 </style>
 </head>
-<body>""")
+<body>
+<table>
+<tbody>""")
     for result in results.values():
-        html_o.write(f"<hr><br><h2>{result['subject']}</h2><h3>{result['name']}</h3><h3>{result['official_id']}</h3>desde: <a href=https://www.boletinoficial.gob.ar{result['link']}>{result['link']}</a>\n")
+        html_o.write(f"<tr>\n<td>\n")
+        html_o.write(f"<details><summary><b>{result['subject']}  -  {result['official_id'] or result['name']}</b></summary><hr>desde: <a href=https://www.boletinoficial.gob.ar{result['link']}>{result['link']}</a>\n")
         if 'brief' in result['data']:
             brief = result['data']['brief']
             brief = markdown.markdown(brief)        
-            html_o.write(f"<br><br><details><summary>Resumen</summary>{brief}</details>\n")
+            html_o.write(f"<p>{brief}</p>\n")
         if 'ref' in result['data']:
             ref = result['data']['ref']
             ref = markdown.markdown(ref)        
-            html_o.write(f"<br><details><summary>Referencias</summary>{ref}</details>\n")
+            html_o.write(f"<details><summary><b>Referencias</b></summary>{ref}</details>\n")
         if 'analysis' in result['data']:
             analysis = result['data']['analysis']
             analysis = markdown.markdown(analysis)        
-            html_o.write(f"<br><details><summary>Análisis de bogabot</summary>{analysis}</details>\n")
-        html_o.write(f"<br><details><summary>Texto original</summary>{result['data']['full_text']}</details>\n")
-    html_o.write('\n</body></html>\n')
+            html_o.write(f"<details><summary><b>Análisis de bogabot</b></summary>{analysis}</details>\n")
+        html_o.write(f"<details><summary><b>Texto original</b></summary>{result['data']['full_text']}</details>\n")
+        html_o.write(f"</div></details>\n</td>\n</tr>\n")
+    html_o.write('\n</tbody></table></body></html>\n')
 
