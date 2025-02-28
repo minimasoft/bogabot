@@ -4,6 +4,7 @@ import json
 import gzip
 import requests
 import markdown
+import sys
 
 
 def load_json_gz(fpath):
@@ -17,8 +18,17 @@ decree_ref = load_json_gz(Path('../data/decretos_ref.json.gz'))
 with open("../data/mapa_context.txt","r",encoding="utf-8") as fp:
     mapa_context = f"Estos son los cargos conocidos:\n'''{fp.read()}\n'''\n\n"
 
+
+prompt_token_total = 0
+eval_token_total = 0
+gpu_time_total = 0
+
+
 def query_ollama(model_name, context, query, max_context=512*1024):
     try:
+        global prompt_token_total
+        global eval_token_total
+        global gpu_time_total
         # Construct the Ollama API URL
         base_url = "http://localhost:11434/api/generate"
 
@@ -30,6 +40,13 @@ def query_ollama(model_name, context, query, max_context=512*1024):
             "model": model_name,
             "prompt": prompt,
             "stream": False,
+            "options": {
+                # Bogabot personality 1.0
+                "temperature": 0.4,
+                "seed": 42, # guaranteed to be random
+                "top_k": 23,
+                "top_p": 0.5,
+            }
         }
 
         # Make the POST request to Ollama API
@@ -37,6 +54,10 @@ def query_ollama(model_name, context, query, max_context=512*1024):
         response.raise_for_status()
 
         # Extract and return the generated text from the response
+        data = response.json()
+        prompt_token_total += data['prompt_eval_count']
+        eval_token_total += data['eval_count']
+        gpu_time_total += data['total_duration']
         return response.json()["response"]
 
     except requests.exceptions.RequestException as e:
@@ -150,8 +171,6 @@ def get_details(url, session, do_brief=True, do_ref=True):
         analysis = query_ollama(MODEL, context_as_text, "Explicar como la norma actual (la ultima en la lista) afecta o impacta sobre las normas anteriores. En caso de modificar leyes anteriores explicar los beneficios afectados de la ley anterior. En caso de no tener impacto o afectarlas no hace falta explicar. En caso de tratarse de un nombramiento descarta lo anterior y simplemente explica que persona queda en cada cargo y que persona se fue. En caso de no haber nombramientos o cambios de cargos no explicar ni mencionar el tema.")
         data['analysis'] = analysis
         print(analysis)
-
-
     return data
 
 
@@ -216,14 +235,17 @@ def get_day(day:int ,month:int , year:int):
         }
         results[link] = element
         print(f"\n\n-- subject: {subject} name: {name} id: {official_id}")
-
+    global prompt_token_total
+    global eval_token_total
+    global gpu_time_total
+    print(f"\n----------------------------------------\nTotal gpu time: {gpu_time_total} total prompt tokens: {prompt_token_total} total eval tokens: {eval_token_total}\n")
     return results
 
 
 # Get BO and generate metadata
-day=26
-month=2
-year=2025
+day= int(sys.argv[1])
+month= int(sys.argv[2])
+year= int(sys.argv[3])
 json_file_path = Path(f"bo{year-2000}{month:02}{day:02}.json")
 
 if json_file_path.exists() == False:
@@ -265,11 +287,15 @@ td {
 </style>
 </head>
 <body>
-<table>
-<tbody>""")
+<img src=bogabanner.png></img>
+<h2>Agregado de la sección primera del bolet&iacute;n oficial fecha """)
+    html_o.write(f"{day}/{month}/{year}</h2>")
+    html_o.write("""
+    <table>
+    <tbody>""")
     for result in results.values():
         html_o.write(f"<tr>\n<td>\n")
-        html_o.write(f"<details><summary><b>{result['subject']}  -  {result['official_id'] or result['name']}</b></summary><hr>desde: <a href=https://www.boletinoficial.gob.ar{result['link']}>{result['link']}</a>\n")
+        html_o.write(f"<details><summary><b>{result['subject']}  -  {result['official_id'] or result['name']}</b></summary><hr>via: <a href=https://www.boletinoficial.gob.ar{result['link']}>{result['link']}</a>\n")
         if 'brief' in result['data']:
             brief = result['data']['brief']
             brief = markdown.markdown(brief)        
