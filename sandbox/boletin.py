@@ -1,3 +1,4 @@
+# Copyright Minimasoft 2025
 from bs4 import BeautifulSoup
 from pathlib import Path
 import json
@@ -97,7 +98,7 @@ def get_details(url, session, do_brief=True, do_ref=True):
             law_list = json.loads(raw_law_list)
         except json.decoder.JSONDecodeError:
             law_list = []
-            print('json error')
+            print('JSON error in law_list !!!!!!!!!')
 
         raw_decree_list = query_ollama(MODEL, body, "Crear una lista en JSON de decretos mencionados, el formato es '\"123/2024\"' donde '123' es el numero de decreto y '2024' el año. Reglas: - No incluir leyes, resoluciones ni otro tipo de normas. - Sin comentarios. - Sin repetidos - Sin detalles. - Si no se mencionan decretos la respuesta es un vector vacio: '[]'. - No incluir markdown para indicar que es JSON.")
         print(raw_decree_list)
@@ -105,45 +106,51 @@ def get_details(url, session, do_brief=True, do_ref=True):
             decree_list = json.loads(raw_decree_list)
         except json.decoder.JSONDecodeError:
             decree_list = []
-            print('json error')
+            print('JSON error in decree_list !!!!!!!!!')
 
         data['ref'] = "<ul>\n"
         info_legs = set()  # lol
         if len(law_list) > 0:
             data['ref'] += "<li>Leyes:<ul>\n"
             for law in law_list:
-                data['ref'] += f"<li>{law}"
-                if str(law) in law_ref:
+                law_str = str(law).replace('.','')
+                if law_str.find('/') > 0:
+                    continue  # Dumb AI puts decree as law
+                data['ref'] += f"<li>{law_str}"
+                if law_str in law_ref:
                     data['ref']+= "<ul>\n"
-                    matches = law_ref[str(law)]
+                    matches = law_ref[law_str]
                     for year in matches:
                         for law_data in matches[year]:
-                            data['ref'] += f"<li>infoleg {law} - {year} - <a href=https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id={law_data['id']}>{law_data['id']}</a>: {law_data['resumen']}</li>\n"
+                            data['ref'] += f"<li>infoleg {law_str} - {year} - <a href=https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id={law_data['id']}>{law_data['id']}</a>: {law_data['resumen']}</li>\n"
                             info_legs.add(str(law_data['id']))
                     data['ref'] += "</ul>"
                 data['ref'] += "</li>\n"
-            data['ref'] += "</li></ul>\n"
+            data['ref'] += "</ul></li>\n"
         if len(decree_list) > 0:
             data['ref'] += "<li>Decretos:<ul>\n"
             for dec in decree_list:
-                data['ref'] += f"<li>{dec}"
-                if '/' in dec:
-                    dec_n = dec.split('/')[0]
-                    dec_y = dec.split('/')[1]
-                    if str(dec_n) not in decree_ref:
+                dec_str = str(dec)
+                data['ref'] += f"<li>{dec_str}"
+                if '/' in dec_str:
+                    dec_n = dec_str.split('/')[0]
+                    dec_y = dec_str.split('/')[1]
+                    if dec_n not in decree_ref:
                         if len(dec_n) == 4 and dec_n.startswith('20'):
                             dec_n = dec_n[2:]
-                    if str(dec_n) in decree_ref:
-                        decree_n = decree_ref[str(dec_n)]
-                        if str(dec_y) in decree_n:
+                    if dec_n in decree_ref:
+                        decree_n = decree_ref[dec_n]
+                        if dec_y in decree_n:
                             data['ref']+= "<ul>\n"
                             matches = decree_n[str(dec_y)]
                             for decree in matches:
-                                data['ref'] += f"<li>infoleg {dec} - <a href=https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id={decree['id']}>{decree['id']}</a>: {decree['resumen']}</li>\n"
+                                data['ref'] += f"<li>infoleg {dec_str} - <a href=https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id={decree['id']}>{decree['id']}</a>: {decree['resumen']}</li>\n"
                                 info_legs.add(str(decree['id']))
                             data['ref'] += "</ul>"
+                        elif dec_y in ['25','2025']:
+                            data['ref'] += " _TODO_preload_2025_dec_"
                 data['ref'] += "</li>\n"
-            data['ref'] += "</li></ul>\n"
+            data['ref'] += "</ul></li>\n"
         data['ref'] += "</ul>\n"
 
         print(data['ref'])
@@ -311,4 +318,3 @@ td {
         html_o.write(f"<details><summary><b>Texto original</b></summary>{result['data']['full_text']}</details>\n")
         html_o.write(f"</div></details>\n</td>\n</tr>\n")
     html_o.write('\n</tbody></table></body></html>\n')
-
