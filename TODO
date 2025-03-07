@@ -1,0 +1,8 @@
+
+- Clean-up and organize html generation tempalte
+- Clean-up and organize fetch and cache of infoleg of law & decree
+- Add support for resolution linking with fetch & cleanup
+- Add pipeline support for processing norms allowing parallel processing and external API-calls
+- Classify norm types (i.e. nombramientos, recursos, multas)
+- Improve data structure
+
