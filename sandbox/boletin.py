@@ -13,6 +13,7 @@ def load_json_gz(fpath):
         return json.load(jf)
 
 MODEL="huihui_ai/qwen2.5-1m-abliterated:14b"
+#MODEL="qwq:32b"
 
 law_ref = load_json_gz(Path('../data/leyes_ref.json.gz'))
 decree_ref = load_json_gz(Path('../data/decretos_ref.json.gz'))
@@ -59,7 +60,11 @@ def query_ollama(model_name, context, query, max_context=512*1024):
         prompt_token_total += data['prompt_eval_count']
         eval_token_total += data['eval_count']
         gpu_time_total += data['total_duration']
-        return response.json()["response"]
+        llm_response = data["response"]
+        end_of_think = llm_response.find("</think>")
+        if end_of_think > 0:
+            llm_response = llm_response[(end_of_think+8):]
+        return llm_response
 
     except requests.exceptions.RequestException as e:
         print(f"An error occurred while communicating with Ollama API: {e}")
@@ -98,15 +103,15 @@ def get_details(url, session, do_brief=True, do_ref=True):
             law_list = json.loads(raw_law_list)
         except json.decoder.JSONDecodeError:
             law_list = []
-            print('JSON error in law_list !!!!!!!!!')
+            print(f"JSON error in law_list !!!!!!!!! {raw_law_list}")
 
-        raw_decree_list = query_ollama(MODEL, body, "Crear una lista en JSON de decretos mencionados, el formato es '\"123/2024\"' donde '123' es el numero de decreto y '2024' el año. Reglas: - No incluir leyes, resoluciones ni otro tipo de normas. - Sin comentarios. - Sin repetidos - Sin detalles. - Si no se mencionan decretos la respuesta es un vector vacio: '[]'. - No incluir markdown para indicar que es JSON.")
+        raw_decree_list = query_ollama(MODEL, body, "Crear una lista en JSON de decretos mencionados, el formato es '\"123/2024\"' donde '123' es el numero de decreto y '2024' el año. Reglas: - No incluir leyes, resoluciones ni otro tipo de normas. - Sin comentarios. - Sin repetidos - Sin detalles. - Si no se mencionan decretos la respuesta es un vector vacio: '[]'. - No incluir markdown para indicar que es JSON. No pensarlo demasiado.")
         print(raw_decree_list)
         try:
             decree_list = json.loads(raw_decree_list)
         except json.decoder.JSONDecodeError:
             decree_list = []
-            print('JSON error in decree_list !!!!!!!!!')
+            print(f"JSON error in decree_list !!!!!!!!!: {raw_decree_list}")
 
         data['ref'] = "<ul>\n"
         info_legs = set()  # lol
@@ -175,7 +180,10 @@ def get_details(url, session, do_brief=True, do_ref=True):
         context_as_text += mapa_context
         context_as_text += "Norma actual:\n"
         context_as_text += body
-        analysis = query_ollama(MODEL, context_as_text, "Explicar como la norma actual (la ultima en la lista) afecta o impacta sobre las normas anteriores. En caso de modificar leyes anteriores explicar los beneficios afectados de la ley anterior. En caso de no tener impacto o afectarlas no hace falta explicar. En caso de tratarse de un nombramiento descarta lo anterior y simplemente explica que persona queda en cada cargo y que persona se fue. En caso de no haber nombramientos o cambios de cargos no explicar ni mencionar el tema.")
+        print("-------------------------------------------------------")
+        print(f"Tamaño del contexto a enviar: {len(context_as_text)} bytes")
+        print("-------------------------------------------------------")
+        analysis = query_ollama(MODEL, context_as_text, "Explicar como la norma actual (la ultima en la lista) afecta o impacta sobre las normas anteriores. En caso de modificar leyes anteriores explicar los beneficios afectados de la ley anterior. En caso de no tener impacto o afectarlas no hace falta explicar.")
         data['analysis'] = analysis
         print(analysis)
     return data
