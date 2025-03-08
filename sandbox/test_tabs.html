@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<!-- Experiment on creating tabs and hide/show policy based on CSS rules without javascript -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CSS Tabs Experiment</title>
+    <style>
+        .tab-container {
+            max-width: 600px;
+            margin: 2rem auto;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        [type="radio"] {
+            position: absolute;
+            opacity: 0;
+        }
+
+        .tab-label {
+            display: inline-block;
+            padding: 15px 25px;
+            background-color: #f4f4f4;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0; /* Top-right and top-left corners rounded */
+            transition: all 0.3s ease;
+        }
+
+        .tab-label:hover {
+            background-color: #e0e0e0;
+        }
+
+        /* Active tab styling */
+        [type="radio"]:checked + .tab-label {
+            background-color: white;
+            position: relative;
+            z-index: 1;
+            border-bottom: 2px solid white; /* Prevent overlap with content area */
+        }
+
+        /* Content styling */
+        .content {
+            padding: 0px;
+            background-color: white;
+            display: none;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            /*border-top: 1px solid #ddd; */ /* Separates content from tabs */
+        }
+
+        /* Show content when its tab is selected 
+        [type="radio"]:checked + .tab-label + .content {
+            max-height: 500px; 
+            padding: 20px;
+        }*/
+	#tab1:checked ~ .content1,
+	#tab2:checked ~ .content2,
+	#tab3:checked ~ .content3 {
+		display: block;
+	}
+    </style>
+</head>
+<body>
+
+<!-- Tab Container -->
+<div class="tab-container">
+    
+    <!-- First Tab -->
+    <input type="radio" name="tabs" id="tab1" checked>
+    <label for="tab1" class="tab-label">Tab One</label>
+    <!-- Second Tab -->
+    <input type="radio" name="tabs" id="tab2">
+    <label for="tab2" class="tab-label">Tab Two</label>
+    <!-- Third Tab -->
+    <input type="radio" name="tabs" id="tab3">
+    <label for="tab3" class="tab-label">Tab Three</label>
+
+    <div class="content content1">
+        <p>Content for first tab goes here. This is some example text.</p>
+        <p>Content for first tab goes here. This is some example text.</p>
+        <p>Content for first tab goes here. This is some example text.</p>
+        <p>Content for first tab goes here. This is some example text.</p>
+    </div>
+
+    <div class="content content2">
+        <p>Second tab content. More sample information here.</p>
+        <p>Second tab content. More sample information here.</p>
+        <p>Second tab content. More sample information here.</p>
+        <p>Second tab content. More sample information here.</p>
+        <p>Second tab content. More sample information here.</p>
+    </div>
+
+    <div class="content content3">
+        <p>Third tab content area. Final example text here.</p>
+        <p>Third tab content area. Final example text here.</p>
+        <p>Third tab content area. Final example text here.</p>
+        <p>Third tab content area. Final example text here.</p>
+        <p>Third tab content area. Final example text here.</p>
+    </div>
+
+</div>
+
+</body>
+</html>
+
