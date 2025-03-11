@@ -321,7 +321,7 @@ td {
 </style>
 </head>
 <body>
-<img src=bogabanner.png></img>
+<a href=/><img src=bogabanner.png></img></a>
 <h2>Agregado de la sección primera del bolet&iacute;n oficial fecha """)
     html_o.write(f"{day}/{month}/{year}</h2>")
     html_o.write("""
