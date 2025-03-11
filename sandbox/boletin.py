@@ -4,6 +4,7 @@ from pathlib import Path
 import json
 import gzip
 import requests
+from requests.adapters import HTTPAdapter, Retry
 import markdown
 import sys
 
@@ -25,6 +26,8 @@ prompt_token_total = 0
 eval_token_total = 0
 gpu_time_total = 0
 
+ollama_session = requests.Session()
+#ollama_session.get("https://italia-bibliography-objectives-preference.trycloudflare.com/?token=d12913169a9666262987b7792bbbc08f251e331c571721e8f67b1c3jaja_de_aca")
 
 def query_ollama(model_name, context, query, max_context=512*1024):
     try:
@@ -33,6 +36,7 @@ def query_ollama(model_name, context, query, max_context=512*1024):
         global gpu_time_total
         # Construct the Ollama API URL
         base_url = "http://localhost:11434/api/generate"
+        base_url = "https://italia-bibliography-objectives-preference.trycloudflare.com/api/generate"
 
         # Prepare the prompt by combining context and query
         prompt = f"Contexto:\n'''\n{context}\n'''\n\nTarea:\n'''\n{query}\n'''\n"
@@ -53,7 +57,7 @@ def query_ollama(model_name, context, query, max_context=512*1024):
         }
 
         # Make the POST request to Ollama API
-        response = requests.post(base_url, json=payload)
+        response = ollama_session.post(base_url, json=payload, verify=False)
         response.raise_for_status()
 
         # Extract and return the generated text from the response
@@ -103,9 +107,9 @@ def get_details(url, session, do_brief=True, do_ref=True):
     
     if do_brief:
         response = query_ollama(MODEL_SMART_BRAIN, mapa_context + body, "Crea un resumen del siguiente texto, siempre menciona a todos los firmantes que son los nombres al final, si es una designacion solo menciona a las personas involucradas y sus roles, si hay datos tabulados solo menciona su existencia, no ofrezcas mas ayuda, la respuesta es final, el resumen no debe tener mas de 600 caracteres, ignorar tags HTML.")
-        refined_response = query_ollama(MODEL, response, "Corrije errores ortograficos en el siguiente texto. Si no hay errores solo copia el texto. No ofrezcas mas ayuda ni hagas aclaraciones")
-        data['brief'] = refined_response
-        print(response)
+        #refined_response = query_ollama(MODEL, response, "Corrije errores ortograficos en el siguiente texto. Si no hay errores solo copia el texto. No ofrezcas mas ayuda ni hagas aclaraciones")
+        data['brief'] = response
+        print(f"BRIEF:\n\n{response}\n\n.-.-.\n")
     
     if do_ref:
         raw_law_list = query_ollama(MODEL_DUMB_BRAIN, body, "Crear una lista en formato JSON de numeros de ley (sin articulos). Limitaciones: - Solo deben ser leyes, ignorar decretos, resoluciones, comunicaciones u otro tipo de normas. - Sin comentarios. - Sin repetidos - Sin detalles - En caso de no existir leyes mencionadas la respuesta es un vector vacio: '[]'. - No incluir markdown para indicar que es JSON.")
@@ -202,7 +206,6 @@ def get_details(url, session, do_brief=True, do_ref=True):
 
 def get_day(day:int ,month:int , year:int):
     session = requests.Session()
-    from requests.adapters import HTTPAdapter, Retry
     retries = Retry(total=4, backoff_factor=0.3, status_forcelist=[500,502,503,504])
     session.mount('https://', HTTPAdapter(max_retries=retries))
     session.headers.update({
