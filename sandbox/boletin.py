@@ -12,8 +12,8 @@ def load_json_gz(fpath):
     with gzip.open(fpath,'rt',encoding='utf-8') as jf:
         return json.load(jf)
 
-MODEL="huihui_ai/qwen2.5-1m-abliterated:14b"
-#MODEL="qwq:32b"
+MODEL_DUMB_BRAIN="huihui_ai/qwen2.5-1m-abliterated:14b"
+MODEL_SMART_BRAIN="qwq:32b"
 
 law_ref = load_json_gz(Path('../data/leyes_ref.json.gz'))
 decree_ref = load_json_gz(Path('../data/decretos_ref.json.gz'))
@@ -48,6 +48,7 @@ def query_ollama(model_name, context, query, max_context=512*1024):
                 "seed": 42, # guaranteed to be random
                 "top_k": 23,
                 "top_p": 0.5,
+                "num_ctx": 8192, # Testing
             }
         }
 
@@ -61,9 +62,19 @@ def query_ollama(model_name, context, query, max_context=512*1024):
         eval_token_total += data['eval_count']
         gpu_time_total += data['total_duration']
         llm_response = data["response"]
+        is_thinking = llm_response.find("<think>")
         end_of_think = llm_response.find("</think>")
         if end_of_think > 0:
             llm_response = llm_response[(end_of_think+8):]
+        if is_thinking >= 0 and end_of_think < 0:
+            print("--------------------------------------------------")
+            print("--------------------------------------------------")
+            print("--------------------------------------------------")
+            print(f"Input:\n{prompt}\n")
+            print("--------------------------------------------------")
+            print("--------------------------------------------------")
+            print("--------------------------------------------------")
+            
         return llm_response
 
     except requests.exceptions.RequestException as e:
@@ -91,13 +102,13 @@ def get_details(url, session, do_brief=True, do_ref=True):
     }
     
     if do_brief:
-        response = query_ollama(MODEL, mapa_context + body, "Crea un resumen del siguiente texto, siempre menciona a todos los firmantes que son los nombres al final, si es una designacion solo menciona a las personas involucradas y sus roles, si hay datos tabulados solo menciona su existencia, no ofrezcas mas ayuda, la respuesta es final, el resumen no debe tener mas de 600 caracteres, ignorar tags HTML.")
+        response = query_ollama(MODEL_SMART_BRAIN, mapa_context + body, "Crea un resumen del siguiente texto, siempre menciona a todos los firmantes que son los nombres al final, si es una designacion solo menciona a las personas involucradas y sus roles, si hay datos tabulados solo menciona su existencia, no ofrezcas mas ayuda, la respuesta es final, el resumen no debe tener mas de 600 caracteres, ignorar tags HTML.")
         refined_response = query_ollama(MODEL, response, "Corrije errores ortograficos en el siguiente texto. Si no hay errores solo copia el texto. No ofrezcas mas ayuda ni hagas aclaraciones")
         data['brief'] = refined_response
         print(response)
     
     if do_ref:
-        raw_law_list = query_ollama(MODEL, body, "Crear una lista en formato JSON de numeros de ley (sin articulos). Limitaciones: - Solo deben ser leyes, ignorar decretos, resoluciones, comunicaciones u otro tipo de normas. - Sin comentarios. - Sin repetidos - Sin detalles - En caso de no existir leyes mencionadas la respuesta es un vector vacio: '[]'. - No incluir markdown para indicar que es JSON.")
+        raw_law_list = query_ollama(MODEL_DUMB_BRAIN, body, "Crear una lista en formato JSON de numeros de ley (sin articulos). Limitaciones: - Solo deben ser leyes, ignorar decretos, resoluciones, comunicaciones u otro tipo de normas. - Sin comentarios. - Sin repetidos - Sin detalles - En caso de no existir leyes mencionadas la respuesta es un vector vacio: '[]'. - No incluir markdown para indicar que es JSON.")
         print(raw_law_list)
         try:
             law_list = json.loads(raw_law_list)
@@ -105,7 +116,7 @@ def get_details(url, session, do_brief=True, do_ref=True):
             law_list = []
             print(f"JSON error in law_list !!!!!!!!! {raw_law_list}")
 
-        raw_decree_list = query_ollama(MODEL, body, "Crear una lista en JSON de decretos mencionados, el formato es '\"123/2024\"' donde '123' es el numero de decreto y '2024' el año. Reglas: - No incluir leyes, resoluciones ni otro tipo de normas. - Sin comentarios. - Sin repetidos - Sin detalles. - Si no se mencionan decretos la respuesta es un vector vacio: '[]'. - No incluir markdown para indicar que es JSON. No pensarlo demasiado.")
+        raw_decree_list = query_ollama(MODEL_DUMB_BRAIN, body, "Crear una lista en JSON de decretos mencionados, el formato es '\"123/2024\"' donde '123' es el numero de decreto y '2024' el año. Reglas: - No incluir leyes, resoluciones ni otro tipo de normas. - Sin comentarios. - Sin repetidos - Sin detalles. - Si no se mencionan decretos la respuesta es un vector vacio: '[]'. - No incluir markdown para indicar que es JSON. No pensarlo demasiado.")
         print(raw_decree_list)
         try:
             decree_list = json.loads(raw_decree_list)
@@ -183,7 +194,7 @@ def get_details(url, session, do_brief=True, do_ref=True):
         print("-------------------------------------------------------")
         print(f"Tamaño del contexto a enviar: {len(context_as_text)} bytes")
         print("-------------------------------------------------------")
-        analysis = query_ollama(MODEL, context_as_text, "Explicar como la norma actual (la ultima en la lista) afecta o impacta sobre las normas anteriores. En caso de modificar leyes anteriores explicar los beneficios afectados de la ley anterior. En caso de no tener impacto o afectarlas no hace falta explicar.")
+        analysis = query_ollama(MODEL_SMART_BRAIN, context_as_text, "Explicar como la norma actual (la ultima en la lista) afecta o impacta sobre las normas anteriores. En caso de modificar leyes anteriores explicar los beneficios afectados de la ley anterior. En caso de no tener impacto o afectarlas no hace falta explicar.")
         data['analysis'] = analysis
         print(analysis)
     return data
