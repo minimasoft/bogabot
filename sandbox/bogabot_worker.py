@@ -34,8 +34,8 @@ ollama_session = requests.Session()
 ollama_session.get(ollama_test)
 
 
-#MODEL="qwq:32b"
-MODEL="huihui_ai/qwen2.5-1m-abliterated:14b"
+MODEL="qwq:32b"
+#MODEL="huihui_ai/qwen2.5-1m-abliterated:14b"
 
 def query_ollama(model_name, context, query, max_context=512*1024):
     try:
