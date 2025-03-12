@@ -24,7 +24,8 @@ for result_path in results_path.glob(f"bo_{year}_{month:02}_{day:02}_el_*.json")
         results.append(json.load(result_file))
 
 with open(html_path, 'w') as html_o:
-    html_o.write("""<html>
+    html_o.write("""<!DOCTYPE html>
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <style>
@@ -60,12 +61,14 @@ td {
 </style>
 </head>
 <body>
+<table>
+<tbody>
+<tr><td>
 <a href=/><img src=bogabanner.png></img></a>
+</td></tr>
+<tr><td>
 <h2>Agregado de la sección primera del bolet&iacute;n oficial fecha """)
-    html_o.write(f"{day}/{month}/{year}</h2>")
-    html_o.write("""
-    <table>
-    <tbody>""")
+    html_o.write(f"{day}/{month}/{year}</h2></td></tr>")
     for result in sorted(results, key=lambda r: r['order']):
         html_o.write(f"<tr>\n<td>\n")
         html_o.write(f"<details><summary><b>{result['subject']}  -  {result['official_id'] or result['name']}</b><br>tags: {','.join(result['tags'])}</summary><hr>via: <a href={result['data_link']}>{result['data_link']}</a>\n")
