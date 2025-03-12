@@ -123,7 +123,7 @@ def process_task(task_data, task_name, session):
 Clasifica la norma anterior con los siguientes tags:
 - #designacion : se utiliza para nombramientos, designaciones transitorias y promociones
 - #renuncia : se utiliza para renuncias
-- #sancion : se utiliza para penalizaciones economicas, multas y sanciones
+- #sancion : se utiliza para penalizaciones economicas o multas aplicadas a personas o empresas especificas
 - #laboral : se utiliza para normas y resoluciones que actualizan el salario o las reglas de trabajo para un gremio o grupo de trabajadores
 - #anses : se utiliza para normas que reglamentan o modifican temas relacionados con la seguridad social, el anses, las pensiones, etc
 - #tarifas : se utiliza para normas que actualizan, o regulan tarifas de servicios
