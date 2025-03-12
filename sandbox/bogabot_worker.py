@@ -1,4 +1,4 @@
-# Copyright Minimasoft 2025
+# Copyright Minimasoft (c) 2025
 from bs4 import BeautifulSoup
 from pathlib import Path
 import json
@@ -34,7 +34,8 @@ ollama_session = requests.Session()
 ollama_session.get(ollama_test)
 
 
-MODEL="qwq:32b"
+#MODEL="qwq:32b"
+MODEL="huihui_ai/qwen2.5-1m-abliterated:14b"
 
 def query_ollama(model_name, context, query, max_context=512*1024):
     try:
@@ -113,14 +114,13 @@ def process_task(task_data, task_name, session):
 
     task_data['full_text'] = body
     
-    if do_brief:
-        response = query_ollama(MODEL_SMART_BRAIN, mapa_context + body, "Crea un resumen del siguiente texto, siempre menciona a todos los firmantes que son los nombres al final, si es una designacion solo menciona a las personas involucradas y sus roles, si hay datos tabulados solo menciona su existencia, no ofrezcas mas ayuda, la respuesta es final, el resumen no debe tener mas de 600 caracteres, ignorar tags HTML.")
-        #refined_response = query_ollama(MODEL, response, "Corrije errores ortograficos en el siguiente texto. Si no hay errores solo copia el texto. No ofrezcas mas ayuda ni hagas aclaraciones")
-        task_data['brief'] = response
-        print(f"BRIEF:\n\n{response}\n\n.-.-.\n")
-    
-    if do_ref:
-        raw_law_list = query_ollama(MODEL_DUMB_BRAIN, body, "Crear una lista en formato JSON de numeros de ley (sin articulos). Limitaciones: - Solo deben ser leyes, ignorar decretos, resoluciones, comunicaciones u otro tipo de normas. - Sin comentarios. - Sin repetidos - Sin detalles - En caso de no existir leyes mencionadas la respuesta es un vector vacio: '[]'. - No incluir markdown para indicar que es JSON.")
+    response = query_ollama(MODEL, mapa_context + body, "Crea un resumen del siguiente texto, siempre menciona a todos los firmantes que son los nombres al final, si es una designacion solo menciona a las personas involucradas y sus roles, si hay datos tabulados solo menciona su existencia, no ofrezcas mas ayuda, la respuesta es final, el resumen no debe tener mas de 600 caracteres, ignorar tags HTML.")
+    #refined_response = query_ollama(MODEL, response, "Corrije errores ortograficos en el siguiente texto. Si no hay errores solo copia el texto. No ofrezcas mas ayuda ni hagas aclaraciones")
+    task_data['brief'] = response
+    print(f"BRIEF:\n\n{response}\n\n.-.-.\n")
+
+    if len(task_data['official_id']) > 0 and task_data['official_id'][:2] not in ["DI","RE"]:
+        raw_law_list = query_ollama(MODEL, body, "Crear una lista en formato JSON de numeros de ley (sin articulos). Limitaciones: - Solo deben ser leyes, ignorar decretos, resoluciones, comunicaciones u otro tipo de normas. - Sin comentarios. - Sin repetidos - Sin detalles - En caso de no existir leyes mencionadas la respuesta es un vector vacio: '[]'. - No incluir markdown para indicar que es JSON.")
         print(raw_law_list)
         try:
             law_list = json.loads(raw_law_list)
@@ -128,7 +128,7 @@ def process_task(task_data, task_name, session):
             law_list = []
             print(f"JSON error in law_list !!!!!!!!! {raw_law_list}")
 
-        raw_decree_list = query_ollama(MODEL_DUMB_BRAIN, body, "Crear una lista en JSON de decretos mencionados, el formato es '\"123/2024\"' donde '123' es el numero de decreto y '2024' el año. Reglas: - No incluir leyes, resoluciones ni otro tipo de normas. - Sin comentarios. - Sin repetidos - Sin detalles. - Si no se mencionan decretos la respuesta es un vector vacio: '[]'. - No incluir markdown para indicar que es JSON. No pensarlo demasiado.")
+        raw_decree_list = query_ollama(MODEL, body, "Crear una lista en JSON de decretos mencionados, el formato es '\"123/2024\"' donde '123' es el numero de decreto y '2024' el año. Reglas: - No incluir leyes, resoluciones ni otro tipo de normas. - Sin comentarios. - Sin repetidos - Sin detalles. - Si no se mencionan decretos la respuesta es un vector vacio: '[]'. - No incluir markdown para indicar que es JSON. No pensarlo demasiado.")
         print(raw_decree_list)
         try:
             decree_list = json.loads(raw_decree_list)
@@ -206,7 +206,7 @@ def process_task(task_data, task_name, session):
         print("-------------------------------------------------------")
         print(f"Tamaño del contexto a enviar: {len(context_as_text)} bytes")
         print("-------------------------------------------------------")
-        analysis = query_ollama(MODEL_SMART_BRAIN, context_as_text, "Explicar como la norma actual (la ultima en la lista) afecta o impacta sobre las normas anteriores. En caso de modificar leyes anteriores explicar los beneficios afectados de la ley anterior. En caso de no tener impacto o afectarlas no hace falta explicar.")
+        analysis = query_ollama(MODEL, context_as_text, "Explicar como la norma actual (la ultima en la lista) afecta o impacta sobre las normas anteriores. En caso de modificar leyes anteriores explicar los beneficios afectados de la ley anterior. En caso de no tener impacto o afectarlas no hace falta explicar.")
         task_data['analysis'] = analysis
         print(analysis)
 
@@ -221,6 +221,7 @@ def create_bo_session():
     session.headers.update({
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36",
         })
+    return session
 
 
 def __main__():
@@ -229,19 +230,24 @@ def __main__():
     running = True
     while running:
         for task_path in tasks_path.glob('*.json'):
-            lock_path = task_path + ".lock"
+            lock_path = Path(str(task_path) + ".lock")
             if lock_path.exists() == False:
                 try:
                     with open(lock_path, 'w') as lock_file:
+                        print(f"Processing: {lock_path}")
                         lock_file.write(f"{os.getpid()}")
                         with open(task_path, 'r', encoding='utf-8') as task_file:
                             task_data = json.load(task_file)
-                            process_task(task_data, session, task_path.name)
+                            process_task(task_data, task_path.name, session)
                     lock_path.unlink()
                     task_path.unlink()
-                except:
+                except Exception as e:
+                    print(f"Error processing {task_path}:\n{e}\n")
+                    lock_path.unlink()
                     pass
-        if len(tasks_path.glob('*.json')) == 0:
+        if len(list(tasks_path.glob('*.json'))) == 0:
             print("Work not found. Bye o/")
             running = False
 
+if __name__ == '__main__':
+    __main__()
