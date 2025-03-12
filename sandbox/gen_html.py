@@ -68,7 +68,7 @@ td {
     <tbody>""")
     for result in sorted(results, key=lambda r: r['order']):
         html_o.write(f"<tr>\n<td>\n")
-        html_o.write(f"<details><summary><b>{result['subject']}  -  {result['official_id'] or result['name']}</b></summary><hr>via: <a href={result['data_link']}>{result['data_link']}</a>\n")
+        html_o.write(f"<details><summary><b>{result['subject']}  -  {result['official_id'] or result['name']}</b><br>tags: {','.join(result['tags'])}</summary><hr>via: <a href={result['data_link']}>{result['data_link']}</a>\n")
         if 'brief' in result:
             brief = result['brief']
             brief = markdown.markdown(brief)        
