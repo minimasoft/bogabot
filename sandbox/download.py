@@ -31,7 +31,7 @@ m_t_n = {
 def dict_dict():
     return defaultdict(dict)
 
-with open('datos.csv','r',encoding='utf-8') as datos_csv:
+with open('../data/datos.csv','r',encoding='utf-8') as datos_csv:
     csv_reader = csv.reader(datos_csv)
     heads = next(csv_reader)
     la_ley = defaultdict(dict_dict)
@@ -89,6 +89,7 @@ with open('datos.csv','r',encoding='utf-8') as datos_csv:
         return defaultdict(list)
     decretos_ref = defaultdict(dict_list)
     leyes_ref = defaultdict(dict_list)
+    reso_ref = defaultdict(dict_list)
 
     def get_links(html):
         links = []
@@ -122,7 +123,7 @@ with open('datos.csv','r',encoding='utf-8') as datos_csv:
             ley = la_ley[T_DECRETO][org][n] 
             #print(f"ley={ley}")
             url = ley['texto_actualizado'] or ley['texto_original']
-            org_path = Path(f"infoleg_html/{str(ley['id_infoleg'])[-1]}/")
+            org_path = Path(f"../data/infoleg_html/{str(ley['id_infoleg'])[-1]}/")
             org_path.mkdir(parents=True, exist_ok=True)
             path = org_path/f"{ley['id_infoleg']}.html"
             if not path.exists():
@@ -138,6 +139,7 @@ with open('datos.csv','r',encoding='utf-8') as datos_csv:
                     'fecha': ley['fecha_sancion'],
                     'titulo': ley['titulo_sumario'],
                     'resumen': ley['texto_resumido'],
+                    'orga': ley['organismo_origen'],
                     'mods': mods,
                     'mod_by': mod_by,
                 }
@@ -153,7 +155,7 @@ with open('datos.csv','r',encoding='utf-8') as datos_csv:
             ley = la_ley[T_LEY][org][n] 
             #print(f"ley={ley}")
             url = ley['texto_actualizado'] or ley['texto_original']
-            org_path = Path(f"infoleg_html/{str(ley['id_infoleg'])[-1]}/")
+            org_path = Path(f"../data/infoleg_html/{str(ley['id_infoleg'])[-1]}/")
             org_path.mkdir(parents=True, exist_ok=True)
             path = org_path/f"{ley['id_infoleg']}.html"
             if not path.exists():
@@ -168,6 +170,7 @@ with open('datos.csv','r',encoding='utf-8') as datos_csv:
                     'fecha': ley['fecha_sancion'],
                     'titulo': ley['titulo_sumario'],
                     'resumen': ley['texto_resumido'],
+                    'orga': ley['organismo_origen'],
                     'mods': mods,
                     'mod_by': mod_by,
                 }
@@ -178,3 +181,33 @@ with open('datos.csv','r',encoding='utf-8') as datos_csv:
         json.dump(leyes_ref, f, ensure_ascii=False, sort_keys=True, indent=2)
         
 
+    for org in la_ley[T_RESOLUCION]:
+        print(f"org={org} ->")
+        for n in la_ley[T_RESOLUCION][org]:
+            reso = la_ley[T_RESOLUCION][org][n] 
+            #print(f"ley={ley}")
+            url = reso['texto_actualizado'] or reso['texto_original']
+            org_path = Path(f"../data/infoleg_html/{str(reso['id_infoleg'])[-1]}/")
+            org_path.mkdir(parents=True, exist_ok=True)
+            path = org_path/f"{reso['id_infoleg']}.html"
+            if not path.exists():
+                print(f"download {url} -> {path}...")
+                with requests.get(url) as html:
+                    with open(path,'w',encoding="utf-8") as f_html:
+                        f_html.write(html.text)
+            mods, mod_by = get_mods(reso)
+            reso_ref[reso['numero_norma']][int(reso['fecha_sancion'][:4])].append(
+                {
+                    'id': reso['id_infoleg'],
+                    'fecha': reso['fecha_sancion'],
+                    'titulo': reso['titulo_sumario'],
+                    'resumen': reso['texto_resumido'],
+                    'orga': reso['organismo_origen'],
+                    'mods': mods,
+                    'mod_by': mod_by,
+                }
+            )
+
+
+    with open('reso_ref.json', 'w', encoding='utf-8') as f:
+        json.dump(reso_ref, f, ensure_ascii=False, sort_keys=True, indent=2)
