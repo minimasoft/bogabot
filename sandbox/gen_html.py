@@ -66,7 +66,7 @@ td {
     html_o.write("""
     <table>
     <tbody>""")
-    for result in sorted(results, lambda r: r['order']):
+    for result in sorted(results, key=lambda r: r['order']):
         html_o.write(f"<tr>\n<td>\n")
         html_o.write(f"<details><summary><b>{result['subject']}  -  {result['official_id'] or result['name']}</b></summary><hr>via: <a href={result['data_link']}>{result['data_link']}</a>\n")
         if 'brief' in result:
