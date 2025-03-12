@@ -127,11 +127,11 @@ Clasifica la norma anterior con los siguientes tags:
 - #laboral : se utiliza para normas y resoluciones que actualizan el salario o las reglas de trabajo para un gremio o grupo de trabajadores
 - #anses : se utiliza para normas que reglamentan o modifican temas relacionados con la seguridad social, el anses, las pensiones, etc
 - #tarifas : se utiliza para normas que actualizan, o regulan tarifas de servicios
-- #jerarquicos : se utiliza para cuando se concede o rechaza un recurso administrativo o jerarquico
+- #jerarquicos : se utiliza para cuando se acepta o rechaza un recurso jerarquico de un expediente administrativo
 - #subasta : se utiliza para cuando se trata de una subasta
 - #presidencial : se utiliza cuando firma el presidente Milei
 
-La respuesta debe ser una lista en formato JSON de los de tags, sin markdown, por ejemplo para #anses y #presidencial la respuesta es:
+La respuesta debe ser una lista en formato JSON de los de tags, sin markdown, si no hay tags la respuesta es [] (la lista vacia) y para #anses y #presidencial la respuesta es:
 ["#anses","#presidencial"]\n""")
 
     task_data['tags'] = json.loads(response)
