@@ -119,7 +119,25 @@ def process_task(task_data, task_name, session):
     task_data['brief'] = response
     print(f"BRIEF:\n\n{response}\n\n.-.-.\n")
 
-    if len(task_data['official_id']) > 0 and task_data['official_id'][:2] not in ["DI","RE"]:
+    response = query_ollama(MODEL, body, """------------
+Clasifica la norma anterior con los siguientes tags:
+- #designacion : se utiliza para nombramientos, designaciones transitorias y promociones
+- #renuncia : se utiliza para renuncias
+- #sancion : se utiliza para penalizaciones economicas, multas y sanciones
+- #laboral : se utiliza para normas y resoluciones que actualizan el salario o las reglas de trabajo para un gremio o grupo de trabajadores
+- #anses : se utiliza para normas que reglamentan o modifican temas relacionados con la seguridad social, el anses, las pensiones, etc
+- #tarifas : se utiliza para normas que actualizan, o regulan tarifas de servicios
+- #jerarquicos : se utiliza para cuando se concede o rechaza un recurso administrativo o jerarquico
+- #subasta : se utiliza para cuando se trata de una subasta
+- #presidencial : se utiliza cuando firma el presidente Milei
+
+La respuesta debe ser una lista en formato JSON de los de tags, sin markdown, por ejemplo para #anses y #presidencial la respuesta es:
+["#anses","#presidencial"]\n""")
+
+    task_data['tags'] = json.loads(response)
+    skip_analysis = any(tag in ["#designacion","#renuncia","#sancion","#renuncia","#jerarquicos","#subasta"] for tag in task_data['tags'])
+
+    if skip_analysis == False: # len(task_data['official_id']) > 0 and task_data['official_id'][:2] not in ["DI","RE"]:
         raw_law_list = query_ollama(MODEL, body, "Crear una lista en formato JSON de numeros de ley (sin articulos). Limitaciones: - Solo deben ser leyes, ignorar decretos, resoluciones, comunicaciones u otro tipo de normas. - Sin comentarios. - Sin repetidos - Sin detalles - En caso de no existir leyes mencionadas la respuesta es un vector vacio: '[]'. - No incluir markdown para indicar que es JSON.")
         print(raw_law_list)
         try:
