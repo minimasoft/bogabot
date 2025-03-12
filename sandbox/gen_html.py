@@ -70,8 +70,10 @@ td {
 <h2>Agregado de la sección primera del bolet&iacute;n oficial fecha """)
     html_o.write(f"{day}/{month}/{year}</h2></td></tr>")
     for result in sorted(results, key=lambda r: r['order']):
-        html_o.write(f"<tr>\n<td>\n")
-        html_o.write(f"<details><summary><b>{result['subject']}  -  {result['official_id'] or result['name']}</b><br>tags: {','.join(result['tags'])}</summary><hr>via: <a href={result['data_link']}>{result['data_link']}</a>\n")
+        html_o.write(f"<tr>\n<td><div id='o_{result['order']}' class='")
+        html_o.write(" ".join(tag[1:] for tag in result['tags']))
+        html_o.write("'>\n")
+        html_o.write(f"<details><summary><a href=#o_{result['order']}>o_{result['order']}</a> <b>{result['subject']}  -  {result['official_id'] or result['name']}</b><br>{' '.join(result['tags'])}</summary><hr>via: <a href={result['data_link']}>{result['data_link']}</a>\n")
         if 'brief' in result:
             brief = result['brief']
             brief = markdown.markdown(brief)        
@@ -85,5 +87,5 @@ td {
             analysis = markdown.markdown(analysis)        
             html_o.write(f"<details><summary><b>Análisis de bogabot</b></summary>{analysis}</details>\n")
         html_o.write(f"<details><summary><b>Texto original</b></summary>{result['full_text']}</details>\n")
-        html_o.write(f"</div></details>\n</td>\n</tr>\n")
+        html_o.write(f"</details>\n</div>\n</td>\n</tr>\n")
     html_o.write('\n</tbody></table></body></html>\n')
