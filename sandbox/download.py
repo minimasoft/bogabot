@@ -5,6 +5,20 @@ from collections import defaultdict
 from bs4 import BeautifulSoup
 from pathlib import Path
 import json
+import gzip
+
+def load_json_gz(fpath):
+    with gzip.open(fpath,'rt',encoding='utf-8') as jf:
+        return json.load(jf)
+
+def dict_list():
+    return defaultdict(list)
+decretos_ref = defaultdict(dict_list)
+leyes_ref = defaultdict(dict_list)
+reso_ref = defaultdict(dict_list)
+
+leyes_ref_old = load_json_gz(Path('../data/leyes_ref.json.gz'))
+decretos_ref_old = load_json_gz(Path('../data/decretos_ref.json.gz'))
 
 T_DECRETO = "Decreto"
 T_RESOLUCION = "Resolución"
@@ -85,11 +99,6 @@ with open('../data/datos.csv','r',encoding='utf-8') as datos_csv:
     #for key in keys:
     #    meta_keys = list(la_ley[key])
     #    print(f"{key}: {meta_keys}")
-    def dict_list():
-        return defaultdict(list)
-    decretos_ref = defaultdict(dict_list)
-    leyes_ref = defaultdict(dict_list)
-    reso_ref = defaultdict(dict_list)
 
     def get_links(html):
         links = []
@@ -116,12 +125,11 @@ with open('../data/datos.csv','r',encoding='utf-8') as datos_csv:
                 mod_by = get_links(r.text)
         return (mods, mod_by)
 
-
     for org in la_ley[T_DECRETO]:
         print(f"org={org} ->")
         for n in la_ley[T_DECRETO][org]:
             ley = la_ley[T_DECRETO][org][n] 
-            #print(f"ley={ley}")
+            print(f"dec={ley['numero_norma']} de {ley['fecha_sancion']}")
             url = ley['texto_actualizado'] or ley['texto_original']
             org_path = Path(f"../data/infoleg_html/{str(ley['id_infoleg'])[-1]}/")
             org_path.mkdir(parents=True, exist_ok=True)
@@ -131,21 +139,27 @@ with open('../data/datos.csv','r',encoding='utf-8') as datos_csv:
                 with requests.get(url) as html:
                     with open(path,'w',encoding="utf-8") as f_html:
                         f_html.write(html.text)
-            
-            mods, mod_by = get_mods(ley)
-            decretos_ref[ley['numero_norma']][int(ley['fecha_sancion'][:4])].append(
-                {
-                    'id': ley['id_infoleg'],
-                    'fecha': ley['fecha_sancion'],
-                    'titulo': ley['titulo_sumario'],
-                    'resumen': ley['texto_resumido'],
-                    'orga': ley['organismo_origen'],
-                    'mods': mods,
-                    'mod_by': mod_by,
-                }
-            )
+            n_a = str(ley['numero_norma'])
+            n_b = str(int(ley['fecha_sancion'][:4]))
 
-    with open('decretos_ref.json', 'w', encoding='utf-8') as f:
+            if str(n_a) in decretos_ref_old and n_b in decretos_ref_old[n_a]:
+                print("xxxx")
+                d = next(d_i for d_i in decretos_ref_old[n_a][n_b] if d_i['id'] == ley['id_infoleg'])
+
+            if d is None:
+                mods, mod_by = get_mods(ley)
+                d = {
+                        'id': ley['id_infoleg'],
+                        'fecha': ley['fecha_sancion'],
+                        'titulo': ley['titulo_sumario'],
+                        'resumen': ley['texto_resumido'],
+                        'orga': ley['organismo_origen'],
+                        'mods': mods,
+                        'mod_by': mod_by,
+                    }
+            decretos_ref[n_a][n_b].append(d)
+
+    with open('decretos_ref_new.json', 'w', encoding='utf-8') as f:
         json.dump(decretos_ref, f, ensure_ascii=False, sort_keys=True, indent=2)
             
     
@@ -153,7 +167,7 @@ with open('../data/datos.csv','r',encoding='utf-8') as datos_csv:
         print(f"org={org} ->")
         for n in la_ley[T_LEY][org]:
             ley = la_ley[T_LEY][org][n] 
-            #print(f"ley={ley}")
+            print(f"ley={ley['numero_norma']}")
             url = ley['texto_actualizado'] or ley['texto_original']
             org_path = Path(f"../data/infoleg_html/{str(ley['id_infoleg'])[-1]}/")
             org_path.mkdir(parents=True, exist_ok=True)
@@ -163,21 +177,30 @@ with open('../data/datos.csv','r',encoding='utf-8') as datos_csv:
                 with requests.get(url) as html:
                     with open(path,'w',encoding="utf-8") as f_html:
                         f_html.write(html.text)
-            mods, mod_by = get_mods(ley)
-            leyes_ref[ley['numero_norma']][int(ley['fecha_sancion'][:4])].append(
-                {
-                    'id': ley['id_infoleg'],
-                    'fecha': ley['fecha_sancion'],
-                    'titulo': ley['titulo_sumario'],
-                    'resumen': ley['texto_resumido'],
-                    'orga': ley['organismo_origen'],
-                    'mods': mods,
-                    'mod_by': mod_by,
-                }
-            )
+            n_a = str(ley['numero_norma'])
+            n_b = str(int(ley['fecha_sancion'][:4]))
+            l = None
+            if n_a in leyes_ref_old and n_b in leyes_ref_old[n_a]:
+                print('xxx')
+                l = next(l_i for l_i in leyes_ref_old[n_a][n_b] if l_i['id'] == ley['id_infoleg'])
+
+            if l is None:
+                mods, mod_by = get_mods(ley)
+                l = {
+                        'id': ley['id_infoleg'],
+                        'fecha': ley['fecha_sancion'],
+                        'titulo': ley['titulo_sumario'],
+                        'resumen': ley['texto_resumido'],
+                        'orga': ley['organismo_origen'],
+                        'mods': mods,
+                        'mod_by': mod_by,
+                    }
+
+            leyes_ref[n_a][n_b].append(l)
 
 
-    with open('leyes_ref.json', 'w', encoding='utf-8') as f:
+
+    with open('leyes_ref_new.json', 'w', encoding='utf-8') as f:
         json.dump(leyes_ref, f, ensure_ascii=False, sort_keys=True, indent=2)
         
 
@@ -185,7 +208,7 @@ with open('../data/datos.csv','r',encoding='utf-8') as datos_csv:
         print(f"org={org} ->")
         for n in la_ley[T_RESOLUCION][org]:
             reso = la_ley[T_RESOLUCION][org][n] 
-            #print(f"ley={ley}")
+            print(f"reso={reso['numero_norma']}")
             url = reso['texto_actualizado'] or reso['texto_original']
             org_path = Path(f"../data/infoleg_html/{str(reso['id_infoleg'])[-1]}/")
             org_path.mkdir(parents=True, exist_ok=True)
@@ -209,5 +232,5 @@ with open('../data/datos.csv','r',encoding='utf-8') as datos_csv:
             )
 
 
-    with open('reso_ref.json', 'w', encoding='utf-8') as f:
+    with open('reso_ref_new.json', 'w', encoding='utf-8') as f:
         json.dump(reso_ref, f, ensure_ascii=False, sort_keys=True, indent=2)
