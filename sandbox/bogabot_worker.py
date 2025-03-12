@@ -127,7 +127,7 @@ Clasifica la norma anterior con los siguientes tags:
 - #laboral : se utiliza para normas y resoluciones que actualizan el salario o las reglas de trabajo para un gremio o grupo de trabajadores
 - #anses : se utiliza para normas que reglamentan o modifican temas relacionados con la seguridad social, el anses, las pensiones, etc
 - #tarifas : se utiliza para normas que actualizan, o regulan tarifas de servicios
-- #jerarquicos : se utiliza para cuando se acepta o rechaza un recurso jerarquico de un expediente administrativo
+- #administrativo : se utiliza para cuando se acepta o rechaza un recurso jerarquico de un expediente administrativo presentado por un particular
 - #subasta : se utiliza para cuando se trata de una subasta
 - #presidencial : se utiliza cuando firma el presidente Milei
 
