@@ -92,11 +92,10 @@ def query_ollama(model_name, context, query, max_context=512*1024):
         return None
 
 
-def process_task(task_data, task_name, session):
+def process_task(task_data, task_name, session, force_analysis=False, force_tags=False, force_brief=False):
     result_path = results_path / task_name
     if result_path.exists():
         print(f"Result already exist: {result_path}")
-        return
 
     url = task_data['data_link']
     # url, do_brief, do_ref
@@ -113,31 +112,38 @@ def process_task(task_data, task_name, session):
     
 
     task_data['full_text'] = body
-    
-    response = query_ollama(MODEL, mapa_context + body, "Crea un resumen del siguiente texto, siempre menciona a todos los firmantes que son los nombres al final, si es una designacion solo menciona a las personas involucradas y sus roles, si hay datos tabulados solo menciona su existencia, no ofrezcas mas ayuda, la respuesta es final, el resumen no debe tener mas de 600 caracteres, ignorar tags HTML.")
-    #refined_response = query_ollama(MODEL, response, "Corrije errores ortograficos en el siguiente texto. Si no hay errores solo copia el texto. No ofrezcas mas ayuda ni hagas aclaraciones")
-    task_data['brief'] = response
-    print(f"BRIEF:\n\n{response}\n\n.-.-.\n")
 
-    response = query_ollama(MODEL, body, """------------
+    if force_brief or 'brief' not in task_data or task_data['brief'] is None:
+        response = query_ollama(MODEL, mapa_context + body, "Crea un resumen del siguiente texto, siempre menciona a todos los firmantes que son los nombres al final, si es una designacion solo menciona a las personas involucradas y sus roles, si hay datos tabulados solo menciona su existencia, no ofrezcas mas ayuda, la respuesta es final, el resumen no debe tener mas de 600 caracteres, ignorar tags HTML.")
+        #refined_response = query_ollama(MODEL, response, "Corrije errores ortograficos en el siguiente texto. Si no hay errores solo copia el texto. No ofrezcas mas ayuda ni hagas aclaraciones")
+        task_data['brief'] = response
+        print(f"BRIEF:\n\n{response}\n\n.-.-.\n")
+
+    if force_tags or 'tags' not in task_data:
+        response = query_ollama(MODEL, body, """------------
 Clasifica la norma anterior con los siguientes tags:
-- #designacion : se utiliza para nombramientos, designaciones transitorias y promociones
-- #renuncia : se utiliza para renuncias
-- #sancion : se utiliza para penalizaciones economicas o multas aplicadas a personas o empresas especificas
-- #laboral : se utiliza para normas y resoluciones que actualizan el salario o las reglas de trabajo para un gremio o grupo de trabajadores
-- #anses : se utiliza para normas que reglamentan o modifican temas relacionados con la seguridad social, el anses, las pensiones, etc
-- #tarifas : se utiliza para normas que actualizan, o regulan tarifas de servicios
-- #administrativo : se utiliza para cuando se acepta o rechaza un recurso jerarquico de un expediente administrativo presentado por un particular
-- #subasta : se utiliza para cuando se trata de una subasta
-- #presidencial : se utiliza cuando firma el presidente Milei
+- #designacion : solo se utiliza para nombramientos, designaciones transitorias y promociones de una persona en particular
+- #renuncia : solo se utiliza para renuncias
+- #sancion : solo se utiliza para penalizaciones economicas o multas aplicadas a personas o empresas especificas
+- #laboral : solo se utiliza para normas y resoluciones que actualizan el salario o las reglas de trabajo para un gremio o grupo de trabajadores
+- #anses : solo se utiliza para normas que reglamentan o modifican temas relacionados con la seguridad social, el anses, las pensiones, etc
+- #tarifas : solo se utiliza para normas que actualizan, o regulan tarifas de servicios
+- #administrativo : solo se utiliza para cuando se acepta o rechaza un recurso jerarquico de un expediente administrativo presentado por un una persona en particular
+- #subasta : solo se utiliza para cuando se trata de una subasta
+- #presidencial : solo se utiliza cuando firma el presidente Milei
 
 La respuesta debe ser una lista en formato JSON de los de tags, sin markdown, si no hay tags la respuesta es [] (la lista vacia) y para #anses y #presidencial la respuesta es:
 ["#anses","#presidencial"]\n""")
+        task_data['tags'] = json.loads(response)
 
-    task_data['tags'] = json.loads(response)
-    skip_analysis = any(tag in ["#designacion","#renuncia","#sancion","#renuncia","#jerarquicos","#subasta"] for tag in task_data['tags'])
-
-    if skip_analysis == False: # len(task_data['official_id']) > 0 and task_data['official_id'][:2] not in ["DI","RE"]:
+    if force_analysis is False:
+        skip_analysis = any(tag in ["#designacion","#renuncia","#sancion","#renuncia","#administrativo","#subasta"] for tag in task_data['tags'])
+        if 'analysis' in task_data and task_data['analysis'] is not None:
+            skip_analysis = True
+    else:
+        skip_analysis = False
+    
+    if skip_analysis == False: 
         raw_law_list = query_ollama(MODEL, body, "Crear una lista en formato JSON de numeros de ley (sin articulos). Limitaciones: - Solo deben ser leyes, ignorar decretos, resoluciones, comunicaciones u otro tipo de normas. - Sin comentarios. - Sin repetidos - Sin detalles - En caso de no existir leyes mencionadas la respuesta es un vector vacio: '[]'. - No incluir markdown para indicar que es JSON.")
         print(raw_law_list)
         try:
@@ -245,7 +251,17 @@ def create_bo_session():
 def __main__():
     print(f"Bogabot worker pid={os.getpid()} ollama_url={ollama_url}")
     session = create_bo_session()
-    running = True
+
+    if len(sys.argv) > 1:
+        running = False
+        task_path = Path(sys.argv[1])
+        task_name = task_path.name
+        with open(task_path, 'r', encoding='utf-8') as task_file:
+            task_data = json.load(task_file)
+        process_task(task_data, task_name, session, force_analysis=True)
+    else:
+        running = True
+
     while running:
         for task_path in tasks_path.glob('*.json'):
             lock_path = Path(str(task_path) + ".lock")
