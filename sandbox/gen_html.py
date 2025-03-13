@@ -70,6 +70,7 @@ td {
 <h2>Agregado de la sección primera del bolet&iacute;n oficial fecha """)
     html_o.write(f"{day}/{month}/{year}</h2></td></tr>")
     for result in sorted(results, key=lambda r: r['order']):
+        print(result)
         html_o.write(f"<tr>\n<td><div id='o_{result['order']}' class='")
         html_o.write(" ".join(tag[1:] for tag in result['tags']))
         html_o.write("'>\n")
@@ -78,11 +79,11 @@ td {
             brief = result['brief']
             brief = markdown.markdown(brief)        
             html_o.write(f"<p>{brief}</p>\n")
-        if 'ref' in result:
+        if 'ref' in result and result['ref'] is not None:
             ref = result['ref']
             ref = markdown.markdown(ref)        
             html_o.write(f"<details><summary><b>Referencias</b></summary>{ref}</details>\n")
-        if 'analysis' in result:
+        if 'analysis' in result and result['analysis'] is not None:
             analysis = result['analysis']
             analysis = markdown.markdown(analysis)        
             html_o.write(f"<details><summary><b>Análisis de bogabot</b></summary>{analysis}</details>\n")
