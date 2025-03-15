@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from pathlib import Path
 import json
 import gzip
+from random import random
 
 def load_json_gz(fpath):
     with gzip.open(fpath,'rt',encoding='utf-8') as jf:
@@ -230,7 +231,10 @@ with open('../data/datos.csv','r',encoding='utf-8') as datos_csv:
                     'mod_by': mod_by,
                 }
             )
-
+            # Save progress
+            if random() > 0.82:
+                with open('reso_ref_new.json', 'w', encoding='utf-8') as f:
+                    json.dump(reso_ref, f, ensure_ascii=False, sort_keys=True, indent=2)
 
     with open('reso_ref_new.json', 'w', encoding='utf-8') as f:
         json.dump(reso_ref, f, ensure_ascii=False, sort_keys=True, indent=2)
