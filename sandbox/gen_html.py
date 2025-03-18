@@ -69,8 +69,14 @@ td {
 <tr><td>
 <h2>Agregado de la sección primera del bolet&iacute;n oficial fecha """)
     html_o.write(f"{day}/{month}/{year}</h2></td></tr>")
+    appoint_list = []
+    resign_list = []
     for result in sorted(results, key=lambda r: r['order']):
         print(result)
+        if 'appointment_list' in result:
+            appoint_list.extend(result['appointment_list'])
+        if 'resign_list' in result:
+            resign_list.extend(result['resign_list'])
         html_o.write(f"<tr>\n<td><div id='o_{result['order']}' class='")
         html_o.write(" ".join(tag[1:] for tag in result['tags']))
         html_o.write("'>\n")
@@ -89,4 +95,10 @@ td {
             html_o.write(f"<details><summary><b>Análisis de bogabot</b></summary>{analysis}</details>\n")
         html_o.write(f"<details><summary><b>Texto original</b></summary>{result['full_text']}</details>\n")
         html_o.write(f"</details>\n</div>\n</td>\n</tr>\n")
+    html_o.write(f"<tr><td><div id=bonus_1><h2><a href=#bouns_1>Bonus 1:</a> designaciones</h2><hr><pre>\n")
+    html_o.write(json.dumps(appoint_list, indent=2, ensure_ascii=False))
+    html_o.write("\n</pre></div></td></tr>\n")
+    html_o.write(f"<tr><td><div id=bonus_2><h2><a href=#bouns_2>Bonus 2:</a> renuncias</h2><hr><pre>\n")
+    html_o.write(json.dumps(resign_list, indent=2, ensure_ascii=False))
+    html_o.write("\n</pre></div></td></tr>\n")
     html_o.write('\n</tbody></table></body></html>\n')
