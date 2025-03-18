@@ -128,16 +128,19 @@ Clasifica la norma anterior con los siguientes tags:
 - #laboral : solo se utiliza para normas y resoluciones que actualizan el salario o las reglas de trabajo para un gremio o grupo de trabajadores.
 - #anses : solo se utiliza para normas que reglamentan o modifican temas relacionados con la seguridad social, el anses o las pensiones.
 - #tarifas : solo se utiliza para normas que actualizan, o regulan tarifas de servicios.
-- #administrativo : solo se utiliza para cuando se acepta o rechaza un recurso jerarquico de un expediente presentado por un una persona en particular.
-- #subasta : solo se utiliza para cuando se trata de una subasta.
-- #presidencial : solo se utiliza cuando firma el presidente Milei.
+- #administrativo : solo se utiliza para cuando se acepta o rechaza un recurso jerarquico de un expediente administrativo presentado por un una persona en particular. No usar para trámites administrativos ministeriales o de entes de control.
+- #cierre: solo se utiliza para cuando se trata de cerrar alguna entidad u organismo.
+- #subasta : solo se utiliza para cuando se trata de una subasta
+- #presidencial : solo se utiliza cuando firma el presidente Milei
 
-La respuesta debe ser una lista en formato JSON de los de tags acompañados de su probabilidad de 1.0 (seguro) a 0.0 (inexistente), sin markdown, si no hay tags la respuesta es [] (la lista vacia) y para #anses 0.8 y #presidencial 1.0 la respuesta es:
+La respuesta debe ser una lista en formato JSON de los de tags acompañados de su probabilidad de 1.0 (seguro), 0.8 (casi seguro), 0.6 (probable), 0.3 (poco probable) a 0.0 (inexistente), sin markdown, si no hay tags la respuesta es [] (la lista vacia) y para #anses 0.8 y #presidencial 1.0 la respuesta es:
 [["#anses", 0.8],["#presidencial", 1.0]]\n""")
         task_data['tags'] = json.loads(response)
     tag_limit = 0.51
-    print(tag_data['tags'])
+    print(task_data['tags'])
     useful_tags = [ tag[0] for tag in task_data['tags'] if float(tag[1]) > tag_limit ]
+    task_data['tags'] = useful_tags
+    print(task_data['tags'])
     if force_analysis is False:
         skip_analysis = any(tag in ["#designacion","#renuncia","#multa","#administrativo","#subasta"] for tag in useful_tags)
         if 'analysis' in task_data and task_data['analysis'] is not None:
@@ -232,7 +235,7 @@ La respuesta debe ser una lista en formato JSON de los de tags acompañados de s
         print("-------------------------------------------------------")
         print(f"Tamaño del contexto a enviar: {len(context_as_text)} bytes")
         print("-------------------------------------------------------")
-        analysis = query_ollama(MODEL, context_as_text, "Explicar como la norma actual (la ultima en la lista) afecta o impacta sobre las normas anteriores. En caso de modificar leyes anteriores explicar los beneficios afectados de la ley anterior. En caso de no tener impacto o afectarlas no hace falta explicar.")
+        analysis = query_ollama(MODEL, context_as_text, "Explicar como la norma actual (la ultima en la lista) afecta o impacta sobre las normas anteriores. En caso de modificar leyes anteriores explicar los beneficios afectados de la ley anterior. Mencionar derechos perdidos y posibles abusos con la nueva normativa.")
         task_data['analysis'] = analysis
         print(analysis)
 
