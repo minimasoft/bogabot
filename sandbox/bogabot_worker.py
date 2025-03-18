@@ -18,7 +18,7 @@ def load_json_gz(fpath):
 law_ref = load_json_gz(Path('../data/leyes_ref.json.gz'))
 decree_ref = load_json_gz(Path('../data/decretos_ref.json.gz'))
 with open("../data/mapa_context.txt","r",encoding="utf-8") as fp:
-    mapa_context = f"Estos son los cargos conocidos al dia de hoy:\n'''{fp.read()}\n'''\n\n"
+    mapa_context = f"Estos son los cargos conocidos al dia de hoy, solo para utilizar de referencia:\n'''{fp.read()}\n'''\n\n"
 
 tasks_path = Path('../tasks/')
 tasks_path.mkdir(exist_ok=True)
@@ -123,14 +123,14 @@ def process_task(task_data, task_name, session, force_analysis=False, force_tags
         response = query_ollama(MODEL, body, """------------
 Clasifica la norma anterior con los siguientes tags:
 - #designacion : solo se utiliza para nombramientos, designaciones transitorias y promociones de una persona en particular
-- #renuncia : solo se utiliza para renuncias
-- #sancion : solo se utiliza para penalizaciones economicas o multas aplicadas a personas o empresas especificas
-- #laboral : solo se utiliza para normas y resoluciones que actualizan el salario o las reglas de trabajo para un gremio o grupo de trabajadores
-- #anses : solo se utiliza para normas que reglamentan o modifican temas relacionados con la seguridad social, el anses, las pensiones, etc
-- #tarifas : solo se utiliza para normas que actualizan, o regulan tarifas de servicios
-- #administrativo : solo se utiliza para cuando se acepta o rechaza un recurso jerarquico de un expediente administrativo presentado por un una persona en particular
-- #subasta : solo se utiliza para cuando se trata de una subasta
-- #presidencial : solo se utiliza cuando firma el presidente Milei
+- #renuncia : solo se utiliza para renuncias.
+- #multa : solo se utiliza para penalizaciones economicas o multas aplicadas a personas o empresas especificas.
+- #laboral : solo se utiliza para normas y resoluciones que actualizan el salario o las reglas de trabajo para un gremio o grupo de trabajadores.
+- #anses : solo se utiliza para normas que reglamentan o modifican temas relacionados con la seguridad social, el anses o las pensiones.
+- #tarifas : solo se utiliza para normas que actualizan, o regulan tarifas de servicios.
+- #administrativo : solo se utiliza para cuando se acepta o rechaza un recurso jerarquico de un expediente presentado por un una persona en particular.
+- #subasta : solo se utiliza para cuando se trata de una subasta.
+- #presidencial : solo se utiliza cuando firma el presidente Milei.
 
 La respuesta debe ser una lista en formato JSON de los de tags acompañados de su probabilidad de 1.0 (seguro) a 0.0 (inexistente), sin markdown, si no hay tags la respuesta es [] (la lista vacia) y para #anses 0.8 y #presidencial 1.0 la respuesta es:
 [["#anses", 0.8],["#presidencial", 1.0]]\n""")
@@ -139,7 +139,7 @@ La respuesta debe ser una lista en formato JSON de los de tags acompañados de s
     print(tag_data['tags'])
     useful_tags = [ tag[0] for tag in task_data['tags'] if float(tag[1]) > tag_limit ]
     if force_analysis is False:
-        skip_analysis = any(tag in ["#designacion","#renuncia","#sancion","#renuncia","#administrativo","#subasta"] for tag in useful_tags)
+        skip_analysis = any(tag in ["#designacion","#renuncia","#multa","#administrativo","#subasta"] for tag in useful_tags)
         if 'analysis' in task_data and task_data['analysis'] is not None:
             skip_analysis = True
     else:
