@@ -56,7 +56,8 @@ def query_ollama(model_name, context, query, max_context=512*1024):
                 "seed": 42, # guaranteed to be random
                 "top_k": 24,
                 "top_p": 0.5,
-                "num_ctx": 32768, # Testing
+                "num_ctx": 13231, #3090 max speed
+                #"num_ctx": 120000, #40GB+ (h100, rtx6000 ada, etc)
             }
         }
 
@@ -141,8 +142,35 @@ La respuesta debe ser una lista en formato JSON de los de tags acompañados de s
         useful_tags = [ tag[0] for tag in task_data['tags'] if float(tag[1]) > tag_limit ]
         task_data['tags'] = useful_tags
     print(task_data['tags'])
+
+    if '#designacion' in task_data['tags'] and 'appointment_list' not in task_data:
+        prompt = """Crear una lista en formato JSON (sin markdown)  de las personas que fueron designadas a un cargo con los siguientes campos:
+- 'name': nombre completo de la persona designada.
+- 'gov_id': número de DNI or CUIT de la persona designada.
+- 'gov_section': el departamento, ministerio o sección del gobierno.
+- 'position': cargo al que la persona es designada.
+- 'position_start': fecha en la que la persona asume el cargo.
+- 'position_duration_days': si la designación es temporal el número de dias, sino 0.
+"""
+        new_pasta = query_ollama(MODEL, body, prompt)
+        print(f"appointment_list: {new_pasta}")
+        task_data['appointment_list'] = json.loads(new_pasta)
+
+    if '#renuncia' in task_data['tags'] and 'resign_list' not in task_data:
+        prompt = """Crear una lista en formato JSON (sin markdown)  de las personas que renuncian a un cargo con los siguientes campos:
+- 'name': nombre completo de la persona que renuncia.
+- 'gov_id': número de DNI or CUIT de la persona que renuncia.
+- 'gov_section': el departamento, ministerio o sección del gobierno.
+- 'position': cargo al que la persona renuncia.
+- 'position_end': fecha en la que la persona renuncia al cargo.
+"""
+        ex_pasta = query_ollama(MODEL, body, prompt)
+        print(f"resign_list: {new_pasta}")
+        task_data['resign_list'] = json.loads(new_pasta)
+
+
     if force_analysis is False:
-        skip_analysis = any(tag in ["#designacion","#renuncia","#multa","#administrativo","#subasta"] for tag in useful_tags)
+        skip_analysis = any(tag in ["#designacion","#renuncia","#multa","#administrativo"] for tag in task_data['tags'])
         if 'analysis' in task_data and task_data['analysis'] is not None:
             skip_analysis = True
     else:
@@ -263,7 +291,7 @@ def __main__():
         task_name = task_path.name
         with open(task_path, 'r', encoding='utf-8') as task_file:
             task_data = json.load(task_file)
-        process_task(task_data, task_name, session, force_analysis=True)
+        process_task(task_data, task_name, session, force_analysis=False)
     else:
         running = True
 
