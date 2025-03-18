@@ -74,7 +74,7 @@ td {
         html_o.write(f"<tr>\n<td><div id='o_{result['order']}' class='")
         html_o.write(" ".join(tag[1:] for tag in result['tags']))
         html_o.write("'>\n")
-        html_o.write(f"<details><summary><a href=#o_{result['order']}>o_{result['order']}</a> <b>{result['subject']}  -  {result['official_id'] or result['name']}</b><br>{' '.join(result['tags'])}</summary><hr>via: <a href={result['data_link']}>{result['data_link']}</a>\n")
+        html_o.write(f"<details open><summary><a href=#o_{result['order']}>o_{result['order']}</a> <b>{result['subject']}  -  {result['official_id'] or result['name']}</b><br>{' '.join(result['tags'])}</summary><hr>via: <a href={result['data_link']}>{result['data_link']}</a>\n")
         if 'brief' in result:
             brief = result['brief']
             brief = markdown.markdown(brief)        
