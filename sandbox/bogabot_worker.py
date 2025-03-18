@@ -52,11 +52,11 @@ def query_ollama(model_name, context, query, max_context=512*1024):
             "stream": False,
             "options": {
                 # Bogabot personality 1.0
-                "temperature": 0.4,
+                "temperature": 0.42,
                 "seed": 42, # guaranteed to be random
-                "top_k": 23,
+                "top_k": 24,
                 "top_p": 0.5,
-                "num_ctx": 8192, # Testing
+                "num_ctx": 32768, # Testing
             }
         }
 

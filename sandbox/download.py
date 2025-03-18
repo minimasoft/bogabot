@@ -145,7 +145,10 @@ with open('../data/datos.csv','r',encoding='utf-8') as datos_csv:
 
             if str(n_a) in decretos_ref_old and n_b in decretos_ref_old[n_a]:
                 print("xxxx")
-                d = next(d_i for d_i in decretos_ref_old[n_a][n_b] if d_i['id'] == ley['id_infoleg'])
+                try:
+                    d = next(d_i for d_i in decretos_ref_old[n_a][n_b] if d_i['id'] == ley['id_infoleg'])
+                except StopIteration:
+                    d = None
 
             if d is None:
                 mods, mod_by = get_mods(ley)
