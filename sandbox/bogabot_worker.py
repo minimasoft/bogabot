@@ -132,12 +132,14 @@ Clasifica la norma anterior con los siguientes tags:
 - #subasta : solo se utiliza para cuando se trata de una subasta
 - #presidencial : solo se utiliza cuando firma el presidente Milei
 
-La respuesta debe ser una lista en formato JSON de los de tags, sin markdown, si no hay tags la respuesta es [] (la lista vacia) y para #anses y #presidencial la respuesta es:
-["#anses","#presidencial"]\n""")
+La respuesta debe ser una lista en formato JSON de los de tags acompañados de su probabilidad de 1.0 (seguro) a 0.0 (inexistente), sin markdown, si no hay tags la respuesta es [] (la lista vacia) y para #anses 0.8 y #presidencial 1.0 la respuesta es:
+[["#anses", 0.8],["#presidencial", 1.0]]\n""")
         task_data['tags'] = json.loads(response)
-
+    tag_limit = 0.51
+    print(tag_data['tags'])
+    useful_tags = [ tag[0] for tag in task_data['tags'] if float(tag[1]) > tag_limit ]
     if force_analysis is False:
-        skip_analysis = any(tag in ["#designacion","#renuncia","#sancion","#renuncia","#administrativo","#subasta"] for tag in task_data['tags'])
+        skip_analysis = any(tag in ["#designacion","#renuncia","#sancion","#renuncia","#administrativo","#subasta"] for tag in useful_tags)
         if 'analysis' in task_data and task_data['analysis'] is not None:
             skip_analysis = True
     else:
