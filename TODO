@@ -1,7 +1,4 @@
-
 - Clean-up and organize fetch and cache of infoleg of law & decree
 - Add support for resolution linking with fetch & cleanup
-- Classify norm types (i.e. nombramientos, recursos, multas)
 - Improve data structure
-- Add confidence weighting to classifiers to filter out false positives.
-
+- Add support for constitution context and norm analysis
