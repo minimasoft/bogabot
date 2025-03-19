@@ -42,7 +42,7 @@ ollama_token = worker_config['ollama_login_token']
 ollama_test = f"{ollama_url}/{ollama_token}"
 
 ollama_session = requests.Session()
-ollama_session.get(ollama_test)
+ollama_session.get(ollama_test, verify=False)
 
 
 MODEL="qwq:32b"
