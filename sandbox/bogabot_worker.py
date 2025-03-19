@@ -10,6 +10,10 @@ import sys
 import os
 
 
+def load_json(fpath):
+    with open(fpath, 'rt', encoding='utf-8') as jf:
+        return json.load(jf)
+
 def load_json_gz(fpath):
     with gzip.open(fpath,'rt',encoding='utf-8') as jf:
         return json.load(jf)
@@ -17,6 +21,7 @@ def load_json_gz(fpath):
 
 law_ref = load_json_gz(Path('../data/leyes_ref.json.gz'))
 decree_ref = load_json_gz(Path('../data/decretos_ref.json.gz'))
+
 with open("../data/mapa_context.txt","r",encoding="utf-8") as fp:
     mapa_context = f"Estos son los cargos conocidos al dia de hoy, solo para utilizar de referencia:\n'''{fp.read()}\n'''\n\n"
 
@@ -26,10 +31,15 @@ tasks_path.mkdir(exist_ok=True)
 results_path = Path('../results/')
 results_path.mkdir(exist_ok=True)
 
-ollama_url = "http://localhost:11434"
-#ollama_token = "?token="
-ollama_token = ""
+worker_config_path = Path(sys.argv[1]) # i.e. 'worker_local.json'
+worker_config = load_json(worker_config_path)
+
+task_path = Path(sys.argv[2]) if len(sys.argv) > 2 else None # i.e. '../results/boxxx.json
+
+ollama_url = worker_config['ollama_base_url']
+ollama_token = worker_config['ollama_login_token']
 ollama_test = f"{ollama_url}/{ollama_token}"
+
 ollama_session = requests.Session()
 ollama_session.get(ollama_test)
 
@@ -149,24 +159,24 @@ La respuesta debe ser una lista en formato JSON de los de tags acompañados de s
 - 'gov_id': número de DNI or CUIT de la persona designada.
 - 'gov_section': el departamento, ministerio o sección del gobierno.
 - 'position': cargo al que la persona es designada.
-- 'position_start': fecha en la que la persona asume el cargo.
+- 'position_start': fecha en la que la persona asume el cargo, el formato debe ser YYYY-MM-DD.
 - 'position_duration_days': si la designación es temporal el número de dias, sino 0.
 """
         new_pasta = query_ollama(MODEL, body, prompt)
         print(f"appointment_list: {new_pasta}")
         task_data['appointment_list'] = json.loads(new_pasta)
 
-    if '#renuncia' in task_data['tags'] and 'resign_list' not in task_data:
+    if '#renuncia' in task_data['tags']:# and 'resign_list' not in task_data:
         prompt = """Crear una lista en formato JSON (sin markdown)  de las personas que renuncian a un cargo con los siguientes campos:
 - 'name': nombre completo de la persona que renuncia.
 - 'gov_id': número de DNI or CUIT de la persona que renuncia.
 - 'gov_section': el departamento, ministerio o sección del gobierno.
 - 'position': cargo al que la persona renuncia.
-- 'position_end': fecha en la que la persona renuncia al cargo.
+- 'position_end': fecha en la que la persona renuncia al cargo, el formato debe ser YYYY-MM-DD.
 """
         ex_pasta = query_ollama(MODEL, body, prompt)
-        print(f"resign_list: {new_pasta}")
-        task_data['resign_list'] = json.loads(new_pasta)
+        print(f"resign_list: {ex_pasta}")
+        task_data['resign_list'] = json.loads(ex_pasta)
 
 
     if force_analysis is False:
@@ -284,13 +294,11 @@ def create_bo_session():
 def __main__():
     print(f"Bogabot worker pid={os.getpid()} ollama_url={ollama_url}")
     session = create_bo_session()
-
-    if len(sys.argv) > 1:
+    global task_path
+    if task_path is not None:
         running = False
-        task_path = Path(sys.argv[1])
         task_name = task_path.name
-        with open(task_path, 'r', encoding='utf-8') as task_file:
-            task_data = json.load(task_file)
+        task_data = load_json(task_path)
         process_task(task_data, task_name, session, force_analysis=False)
     else:
         running = True
