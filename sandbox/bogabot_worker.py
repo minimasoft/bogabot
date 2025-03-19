@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Copyright Minimasoft (c) 2025
 from bs4 import BeautifulSoup
 from pathlib import Path
@@ -161,18 +162,20 @@ La respuesta debe ser una lista en formato JSON de los de tags acompañados de s
 - 'position': cargo al que la persona es designada.
 - 'position_start': fecha en la que la persona asume el cargo, el formato debe ser YYYY-MM-DD.
 - 'position_duration_days': si la designación es temporal el número de dias, sino 0.
+Si no hay la respuesta es una lista vacía '[]', si hay elementos directamente la lista.
 """
         new_pasta = query_ollama(MODEL, body, prompt)
         print(f"appointment_list: {new_pasta}")
         task_data['appointment_list'] = json.loads(new_pasta)
 
     if '#renuncia' in task_data['tags']:# and 'resign_list' not in task_data:
-        prompt = """Crear una lista en formato JSON (sin markdown)  de las personas que renuncian a un cargo con los siguientes campos:
+        prompt = """Crear una lista en formato JSON (sin markdown) de las personas que renuncian a un cargo con los siguientes campos:
 - 'name': nombre completo de la persona que renuncia.
 - 'gov_id': número de DNI or CUIT de la persona que renuncia.
 - 'gov_section': el departamento, ministerio o sección del gobierno.
 - 'position': cargo al que la persona renuncia.
 - 'position_end': fecha en la que la persona renuncia al cargo, el formato debe ser YYYY-MM-DD.
+Si no hay la respuesta es una lista vacía '[]', si hay elementos directamente la lista.
 """
         ex_pasta = query_ollama(MODEL, body, prompt)
         print(f"resign_list: {ex_pasta}")

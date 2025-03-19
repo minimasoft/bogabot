@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Copyright Minimasoft (c) 2025
 from pathlib import Path
 import json
