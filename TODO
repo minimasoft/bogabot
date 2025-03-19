@@ -1,5 +1,6 @@
 - Clean-up and organize fetch and cache of infoleg of law & decree
 - Add support for resolution linking with fetch & cleanup
+- Clean-up and streamline reference data
 - Improve data structure
 - Add support for constitution context and norm analysis
-- Move to a pipeline processing mode, add validation and normalization of output.
+- Move to a pipeline processing mode, add validation and normalization of output. -> Smaller tasks with priority and context size filtering
