@@ -49,6 +49,7 @@ MODEL="qwq:32b"
 #MODEL="huihui_ai/qwen2.5-1m-abliterated:14b"
 
 def query_ollama(model_name, context, query, max_context=512*1024):
+    global worker_config
     try:
         # Construct the Ollama API URL
         base_url = f"{ollama_url}/api/generate"
@@ -67,8 +68,7 @@ def query_ollama(model_name, context, query, max_context=512*1024):
                 "seed": 42, # guaranteed to be random
                 "top_k": 24,
                 "top_p": 0.5,
-                "num_ctx": 13231, #3090 max speed
-                #"num_ctx": 120000, #40GB+ (h100, rtx6000 ada, etc)
+                "num_ctx": worker_config['ollama_num_ctx'],
             }
         }
 
@@ -296,6 +296,7 @@ def create_bo_session():
 
 def __main__():
     print(f"Bogabot worker pid={os.getpid()} ollama_url={ollama_url}")
+
     session = create_bo_session()
     global task_path
     if task_path is not None:
@@ -307,6 +308,12 @@ def __main__():
         running = True
 
     while running:
+        try:
+            next(tasks_path.glob('*.json'))
+        except StopIteration:
+            running = False
+            print("Work not found. Bye o/")
+            break
         for task_path in tasks_path.glob('*.json'):
             lock_path = Path(str(task_path) + ".lock")
             if lock_path.exists() == False:
@@ -319,13 +326,11 @@ def __main__():
                             process_task(task_data, task_path.name, session)
                     lock_path.unlink()
                     task_path.unlink()
+                    break
                 except Exception as e:
                     print(f"Error processing {task_path}:\n{e}\n")
                     lock_path.unlink()
                     pass
-        if len(list(tasks_path.glob('*.json'))) == 0:
-            print("Work not found. Bye o/")
-            running = False
 
 if __name__ == '__main__':
     __main__()
