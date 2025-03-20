@@ -11,6 +11,7 @@ from datetime import date
 from pathlib import Path
 from requests.adapters import HTTPAdapter, Retry
 from file_db import FileDB, FileDBMeta
+from global_config import gconf
 
 
 def bo_gob_ar_url():
@@ -106,8 +107,8 @@ def main():
         last_id = int(sys.argv[1])
 
     file_db = FileDB(
-        Path('../filedb/'),
-        'bo_local'
+        gconf("FILEDB_PATH"),
+        gconf("FILEDB_SALT"),
     )
     task_meta = FileDBMeta("bo_norm", "ext_id")
     

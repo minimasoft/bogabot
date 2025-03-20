@@ -1,15 +1,34 @@
 # Copyright Minimasoft (c) 2025
 
+from helpers import load_json_gz
 from pathlib import Path
+from global_config import gconf
 import json
 import gzip
 
-### Context data
 
-#law_ref = load_json_gz(Path('../data/leyes_ref.json.gz'))
-#decree_ref = load_json_gz(Path('../data/decretos_ref.json.gz'))
+### Lazy context ref
 
-with open("../data/mapa_context.txt","r",encoding="utf-8") as fp:
+_law_ref = None
+def law_ref():
+    if _law_ref is None:
+        _law_ref = load_json_gz(gconf("DATA_PATH") / 'leyes_ref.json.gz')
+    return _law_ref
+
+_decree_ref = None
+def decree_ref():
+    if _decree_ref is None:
+        _decree_ref = load_json_gz(gconf("DATA_PATH") / 'decretos_ref.json.gz')
+    return _decree_ref
+
+_reso_ref = None
+def reso_ref():
+    if _reso_ref is None:
+        _reso_ref = load_json_gz(gconf("DATA_PATH") / 'reso_ref.json.gz')
+    return _reso_ref
+
+
+with open(gconf("DATA_PATH") / "mapa_context.txt", "r", encoding="utf-8") as fp:
     mapa_context = f"Estos son los cargos conocidos al dia de hoy, solo para utilizar de referencia:\n```{fp.read()}\n```\n\n"
 
 ### Useful stuff
@@ -310,7 +329,7 @@ def get_llm_task_map() -> dict:
         ResignTask(),
         LawRefTask(),
         DecreeRefTask(),
-        ResolutionRefTask(),
+    #    ResolutionRefTask(),
         AnalysisTask(),
     ]
 
