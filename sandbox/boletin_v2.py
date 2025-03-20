@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 from datetime import date
 from pathlib import Path
 from requests.adapters import HTTPAdapter, Retry
+from file_db import FileDB, FileDBMeta
 
 
 def bo_gob_ar_url():
@@ -92,16 +93,16 @@ def main():
     if len(sys.argv) == 2:
         last_id = int(sys.argv[1])
 
-    tasks_path = Path('../tasks_v2/')
-    tasks_path.mkdir(exist_ok=True)
-
+    file_db = FileDB(
+        Path('../filedb/'),
+        'bo_local'
+    )
+    task_meta = FileDBMeta("bo_norm", "ext_id")
+    
     for task in scan_bo_gob_ar_section_one(last_id):
         print(f"new task:\n{task}")
-        file_name = f"bo_{task['ext_id']}_{task['publish_date']}.json"
-        task_path = tasks_path / file_name
-        if task_path.exists() == False:
-            with open(task_path, 'w', encoding='utf-8') as task_file:
-                json.dump(task, task_file, indent=2, ensure_ascii=False)
+        file_db.write(task, task_meta)
+
 
 if __name__ == '__main__':
     main()
