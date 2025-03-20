@@ -1,56 +1,63 @@
 #!/usr/bin/env python
 # Copyright Minimasoft (c) 2025
 # New BO scrapper that can see the future (tm)
-from bs4 import BeautifulSoup
-from pathlib import Path
+
 import json
 import requests
-from requests.adapters import HTTPAdapter, Retry
 import sys
+
+from bs4 import BeautifulSoup
 from datetime import date
+from pathlib import Path
+from requests.adapters import HTTPAdapter, Retry
 
-tasks_path = Path('../tasks_v2/')
-tasks_path.mkdir(exist_ok=True)
 
+def bo_gob_ar_url():
+    return "https://www.boletinoficial.gob.ar"
 
-def get_day(day:int ,month:int , year:int, last_id=0):
-
+def bo_gob_ar_session():
     session = requests.Session()
     retries = Retry(total=4, backoff_factor=0.3, status_forcelist=[500,502,503,504])
     session.mount('https://', HTTPAdapter(max_retries=retries))
     session.headers.update({
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36",
         })
-    session.get("https://www.boletinoficial.gob.ar/")
-    fecha = f"{day:02}-{month:02}-{year}"
-    session.get(f"https://www.boletinoficial.gob.ar/edicion/actualizar/{fecha}")
+    session.get(f"{bo_gob_ar_url()}/")
+    return session
+
+
+def scan_bo_gob_ar_section_one(last_id):
+
+    session = bo_gob_ar_session()
     found_page = True
-    test_id=last_id
+    current_id=last_id
+
     while found_page:
-        data_link =f"https://www.boletinoficial.gob.ar/detalleAviso/primera/{test_id}/20250319"
-        print(data_link)
-        with session.get(data_link) as r:
-            html_content = r.text
-            
-        # Parse the HTML content with BeautifulSoup
-        soup = BeautifulSoup(html_content, 'html.parser')
+        data_link =f"{bo_gob_ar_url()}/detalleAviso/primera/{current_id}/1" # Yes... I know. Did you know?
         new_task = {}
-        for title_div in soup.find_all('div', {'id': 'tituloDetalleAviso'}):
+
+        print(f"scanning: {data_link}")
+
+        with session.get(data_link) as response:
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            title_div = soup.find('div', {'id': 'tituloDetalleAviso'})
+
             new_task['subject'] = title_div.find('h1').text.strip()
-            print(new_task['subject'])
+
             if title_div.find('h2'):
                 new_task['name'] = title_div.find('h2').text.strip()
             else:
                 new_task['name'] = ""
 
-            new_task['order'] = test_id - last_id
             if title_div.find('h6'):
                 more_data = title_div.find('h6').text.strip()
                 new_task['official_id'] = more_data
             else:
                 new_task['official_id'] = ""
             
-            fecha = date(year, month, day+1)
+            fecha = None
+
             for p_el in soup.find_all('p',{'class':'text-muted'}):
                 if p_el.text.find('Fecha de publi') >= 0:
                     date_text = p_el.text.split('n ')[1].strip()
@@ -62,26 +69,40 @@ def get_day(day:int ,month:int , year:int, last_id=0):
                         break
                     fecha = date(int(date_el[2]), int(date_el[1]), int(date_el[0]))
                     break
+            
+            if fecha is None:
+                raise Exception("T.T")
             # TODO: Pre-procesar acá el texto y agregar los links de anexos
+
+            new_task['order'] = current_id - last_id
             new_task['publish_date'] = f"{fecha.year}-{fecha.month:02}-{fecha.day:02}"
             new_task['data_link'] = data_link
-            new_task['ext_id'] = test_id
+            new_task['ext_id'] = current_id
 
         if new_task == {}:
             break
-        task_path = tasks_path / f"bo_{fecha.year}_{fecha.month:02}_{fecha.day:02}_el_{test_id}.json"
+        else:
+            yield new_task
+
+        current_id += 1
+
+
+def main():
+    last_id = 319184 # 2025 onwards
+    if len(sys.argv) == 2:
+        last_id = int(sys.argv[1])
+
+    tasks_path = Path('../tasks_v2/')
+    tasks_path.mkdir(exist_ok=True)
+
+    for task in scan_bo_gob_ar_section_one(last_id):
+        print(f"new task:\n{task}")
+        file_name = f"bo_{task['ext_id']}_{task['publish_date']}.json"
+        task_path = tasks_path / file_name
         if task_path.exists() == False:
             with open(task_path, 'w', encoding='utf-8') as task_file:
-                json.dump(new_task, task_file, indent=2, ensure_ascii=False)
-        print(f"\n\n-- {new_task}")
-        test_id += 1
+                json.dump(task, task_file, indent=2, ensure_ascii=False)
 
+if __name__ == '__main__':
+    main()
 
-# Get BO and generate metadata
-
-day= int(sys.argv[1])
-month= int(sys.argv[2])
-year= int(sys.argv[3])
-last_id = int(sys.argv[4])
-
-get_day(day,month,year,last_id)
