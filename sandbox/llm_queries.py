@@ -135,3 +135,96 @@ def resign_filter(llm_output: str) -> list:
         raise BadLLMData
     return json_value
 
+
+def law_ref_query(target_norm: str) -> str:
+    prompt = """Crear una lista en formato JSON de numeros de ley (sin artículos).
+Reglas:
+- Solo deben ser leyes: ignorar decretos, resoluciones, comunicaciones u otro tipo de normas.
+- Sin comentarios.
+- Sin repetidos. 
+- En caso de no existir leyes mencionadas la respuesta es un vector vacio: '[]'.
+- No incluir markdown para indicar que es JSON.
+
+Por ejemplo si se mencionan las leyes Ley N 12.443 y Ley 5.542:
+['12443'], ['5542']
+
+Norma a analizar:
+```
+"""
+    prompt += target_norm + "\n```\n"
+
+    return prompt
+
+def law_ref_filter(llm_output: str) -> list:
+    try:
+        json_value = json.loads(llm_output)
+    except Exception as e:
+        print(e.with_traceback())
+        raise BadLLMData
+    return json_value 
+
+def decree_ref_query(target_norm: str) -> str:
+    prompt = """Crear una lista en JSON de decretos mencionados:
+Reglas:
+- El formato es '123/2024' donde '123' es el numero de decreto y '2024' el año. 
+- El año puede estar con 2 dígitos o 4 dígitos, conservar el formato con el que está escrito.
+- No incluir leyes, resoluciones ni otro tipo de normas.
+- Sin comentarios.
+- Sin repetidos.
+- Si no se mencionan decretos la respuesta es una lista vacia: '[]'.
+- No incluir markdown para indicar que es JSON.
+
+Por ejemplo si se mencionan los decretos Decreto N° 1023/01 y Decreto N° 1382 de fecha 9 de agosto de 2012:
+['1023/01', '1382/2012']
+
+Norma:
+```
+"""
+
+    prompt += target_norm + "\n```\n"
+    return prompt
+
+def decree_ref_filter(llm_output: str) -> list:
+    try:
+        json_value = json.loads(llm_output)
+    except Exception as e:
+        print(e.with_traceback())
+        raise BadLLMData
+    return json_value 
+
+
+def resolution_ref_query(target_norm:str) -> str:
+    prompt = """Crear una lista en JSON de resoluciones mencionadas:
+Reglas:
+- Si se menciona la entidad de la resolución incluirla.
+- Mencionar el número de resolución y el año con el formato '123/2002' si el número es 123 y el año 2002.
+- No incluir leyes, decretos ni otro tipo de normas.
+- Sin comentarios.
+- Sin repetidos.
+- Si no se mencionan resoluciones la respuesta es una lista vacia: '[]'.
+- No incluir markdown para indicar que es JSON.
+
+Por ejemplo si se mencionan las resolucioens Resolución N° 15541/25 y la Resolución ENARGAS N° 2747/2002
+['15541/25', 'ENARGAS 2747/2002']
+
+Norma:
+```
+"""
+    prompt += target_norm + "\n```\n"
+    return prompt
+
+def resolution_ref_filter(llm_output: str) -> list:
+    try:
+        json_value = json.loads(llm_output)
+    except Exception as e:
+        print(e.with_traceback())
+        raise BadLLMData
+    return json_value 
+
+
+def analysis_selector(task_data: map) -> bool:
+    return False
+
+def analysis_query(task_data: map) -> str:
+    # TODO cambiar todos los query para usar task_data y armar el mega-contexto.
+    return ""
