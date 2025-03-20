@@ -48,6 +48,8 @@ ollama_session.get(ollama_test, verify=False)
 MODEL="qwq:32b"
 #MODEL="huihui_ai/qwen2.5-1m-abliterated:14b"
 
+
+# Move this to generic LLM-API call with streaming support
 def query_ollama(model_name, context, query, max_context=512*1024):
     global worker_config
     try:
@@ -104,6 +106,7 @@ def query_ollama(model_name, context, query, max_context=512*1024):
         return None
 
 
+# Split this into a processing pipeline with priority for brief 
 def process_task(task_data, task_name, session, force_analysis=False, force_tags=False, force_brief=False):
     result_path = results_path / task_name
     if result_path.exists():
