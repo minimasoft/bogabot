@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Copyright Minimasoft (c) 2025
 # New BO scrapper that can see the future (tm)
 from bs4 import BeautifulSoup
@@ -6,12 +7,14 @@ import json
 import requests
 from requests.adapters import HTTPAdapter, Retry
 import sys
+from datetime import date
 
 tasks_path = Path('../tasks_v2/')
 tasks_path.mkdir(exist_ok=True)
 
 
 def get_day(day:int ,month:int , year:int, last_id=0):
+
     session = requests.Session()
     retries = Retry(total=4, backoff_factor=0.3, status_forcelist=[500,502,503,504])
     session.mount('https://', HTTPAdapter(max_retries=retries))
@@ -33,7 +36,6 @@ def get_day(day:int ,month:int , year:int, last_id=0):
         soup = BeautifulSoup(html_content, 'html.parser')
         new_task = {}
         for title_div in soup.find_all('div', {'id': 'tituloDetalleAviso'}):
-            print("something")
             new_task['subject'] = title_div.find('h1').text.strip()
             print(new_task['subject'])
             if title_div.find('h2'):
@@ -47,12 +49,27 @@ def get_day(day:int ,month:int , year:int, last_id=0):
                 new_task['official_id'] = more_data
             else:
                 new_task['official_id'] = ""
-
+            
+            fecha = date(year, month, day+1)
+            for p_el in soup.find_all('p',{'class':'text-muted'}):
+                if p_el.text.find('Fecha de publi') >= 0:
+                    date_text = p_el.text.split('n ')[1].strip()
+                    if date_text.find('/') > 0:
+                        date_el = date_text.split('/')
+                    elif date_text.find('-') > 0:
+                        date_el = date_text.split('-')
+                    else:
+                        break
+                    fecha = date(int(date_el[2]), int(date_el[1]), int(date_el[0]))
+                    break
+            # TODO: Pre-procesar acá el texto y agregar los links de anexos
+            new_task['publish_date'] = f"{fecha.year}-{fecha.month:02}-{fecha.day:02}"
             new_task['data_link'] = data_link
+            new_task['ext_id'] = test_id
 
         if new_task == {}:
             break
-        task_path = tasks_path / f"bo_{year}_{month:02}_{(day+1):02}_el_{test_id}.json"
+        task_path = tasks_path / f"bo_{fecha.year}_{fecha.month:02}_{fecha.day:02}_el_{test_id}.json"
         if task_path.exists() == False:
             with open(task_path, 'w', encoding='utf-8') as task_file:
                 json.dump(new_task, task_file, indent=2, ensure_ascii=False)
