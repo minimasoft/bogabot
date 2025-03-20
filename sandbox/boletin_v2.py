@@ -43,6 +43,9 @@ def scan_bo_gob_ar_section_one(last_id):
             soup = BeautifulSoup(response.text, 'html.parser')
 
             title_div = soup.find('div', {'id': 'tituloDetalleAviso'})
+            if title_div is None:
+                current_id = current_id + 1
+                continue
 
             new_task['subject'] = title_div.find('h1').text.strip()
 
@@ -73,7 +76,16 @@ def scan_bo_gob_ar_section_one(last_id):
             
             if fecha is None:
                 raise Exception("T.T")
-            # TODO: Pre-procesar acá el texto y agregar los links de anexos
+
+            for script in soup(['script', 'meta', 'link', 'style']):
+                script.decompose()  # Removes the tag completely from the tree
+
+            body = str(soup.find('div', {'id': 'cuerpoDetalleAviso'}).contents[1])
+
+            new_task['full_text'] = body
+
+            # TODO: full text se transforma en parseable reemplazando </p> y <p>
+            # TODO: anexos?
 
             new_task['order'] = current_id - last_id
             new_task['publish_date'] = f"{fecha.year}-{fecha.month:02}-{fecha.day:02}"
@@ -100,7 +112,7 @@ def main():
     task_meta = FileDBMeta("bo_norm", "ext_id")
     
     for task in scan_bo_gob_ar_section_one(last_id):
-        print(f"new task:\n{task}")
+        print(f"new task:\n{task['ext_id']}")
         file_db.write(task, task_meta)
 
 

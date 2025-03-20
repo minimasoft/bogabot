@@ -109,6 +109,7 @@ class FileDB():
         with self._lock(obj_path):
             current_obj = self.read(obj[meta.obj_key_field_s], meta)
             new_data = {}
+            old_data = {}
             for key in obj.keys():
                 if key == meta.obj_key_field_s:
                     continue
@@ -119,6 +120,8 @@ class FileDB():
                         if overwrite == False:
                             raise FileDB.NoOverwrite
                         new_data[key] = obj[key]
+                        old_data[key] = current_obj[key]
+            # TODO: index processing, check fields for new_data and old_data
             new_part_path = obj_path / self._new_part_name()
             self._write_part(new_part_path, new_data)
 
