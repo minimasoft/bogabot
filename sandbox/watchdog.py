@@ -25,6 +25,11 @@ def check_dead_tasks(db, task_meta: dict, timeout_s: float=360.0):
                 db.write(task, task_meta)
     print(f"Found {total} unresponsive {task_meta.d()['type']}.")
 
+def check_locks(db):
+    for lock_path in db._all_locks():
+        print(lock_path)
+        print(lock_path.stat())
+        # TODO: what to do? 
 
 def main(argv: list) -> int:
     db = FileDB(
@@ -37,6 +42,7 @@ def main(argv: list) -> int:
     while running:
         print(f"[{ctime()}]: Watching from pid:{os.getpid()}...")
         check_dead_tasks(db, llm_task_meta)
+        check_locks(db)
         sleep(3.14)
     return 0
 

@@ -83,6 +83,13 @@ class FileDB():
             finally:
                 lock_path.unlink()
 
+    def _all_locks(self):
+        expr = "*/*"
+        for x in range(1, self.tree_depth + 1):
+            expr += "/*"
+        expr += "/.lock"
+        for lock_path in self.base_path.glob(expr):
+            yield lock_path
 
     def _read_part(self, part_path: Path) -> dict:
         with self._open(part_path, 'rt', encoding=self.encoding) as fp:
