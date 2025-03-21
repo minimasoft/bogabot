@@ -228,7 +228,7 @@ Reglas:
 - No incluir markdown para indicar que es JSON.
 
 Por ejemplo si se mencionan las leyes Ley N 12.443 y Ley 5.542:
-['12443'], ['5542']
+['12443', '5542']
 
 Norma a analizar:
 ```

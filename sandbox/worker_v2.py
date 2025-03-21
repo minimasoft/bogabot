@@ -10,7 +10,7 @@ import json
 from time import time_ns, sleep
 from file_db import FileDB, FileDBMeta
 from global_config import gconf
-from llm_tasks import get_llm_task_map, NotEnoughData
+from llm_tasks import get_llm_task_map, NotEnoughData, BadLLMData
 
 
 def load_json(fpath):
@@ -126,10 +126,13 @@ def __main__():
             llm_task['num_ctx'] = worker_config['ollama_num_ctx']
             llm_task['end'] = str(time_ns())
             target_obj = db.read(llm_task['target_key_v'], norm_meta)
-            task_map[
-                llm_task['target_type']][
-                    llm_task['target_attr']
-                    ].post_process(llm_output, target_obj)
+            try:
+                task_map[
+                    llm_task['target_type']][
+                        llm_task['target_attr']
+                        ].post_process(llm_output, target_obj)
+            except BadLLMData:
+                continue 
             db.write(target_obj, norm_meta)
             # only write llm_task with 'end' after storing the result
             db.write(llm_task, llm_task_meta)
