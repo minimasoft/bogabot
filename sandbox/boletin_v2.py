@@ -130,9 +130,10 @@ def main():
         norm_map = llm_task_map['norm']
         for attr in norm_map.keys():
             try:
-                if norm_map[attr].check(norm, norm_meta.d()):
-                    llm_task = norm_map[attr].generate(norm, norm_meta.d())
-                    file_db.write(llm_task, llm_task_meta)
+                if attr not in norm:
+                    if norm_map[attr].check(norm, norm_meta.d()):
+                        llm_task = norm_map[attr].generate(norm, norm_meta.d())
+                        file_db.write(llm_task, llm_task_meta)
             except NotEnoughData:
                 pass
         current_id = current_id + 1

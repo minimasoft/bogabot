@@ -17,6 +17,6 @@ def gconf(key: str):
             'FILEDB_PATH': Path(_env("FILEDB_PATH", "../filedb")),
             'FILEDB_SALT': _env("FILEDB_SALT", "bo_salt"),
             'NORM_META': FileDBMeta('norm', 'ext_id'),
-            'LLM_TASK_META': FileDBMeta('llm_task', 'prompt'),
+            'LLM_TASK_META': FileDBMeta('llm_task', 'task_key'),
         }
     return _gconf_cache[key]

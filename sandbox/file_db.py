@@ -6,6 +6,7 @@ import gzip
 import json
 import time
 import random
+import shutil
 import sys
 from base58 import b58encode
 from contextlib import contextmanager
@@ -161,6 +162,12 @@ class FileDB():
             # TODO: hooks
             new_part_path = obj_path / self._new_part_name_v2()
             self._write_part(new_part_path, record)
+    
+    def delete(self, obj: dict, meta: FileDBMeta):
+        b58key_s = self.key_enc.digest_s(obj[meta.obj_key_field_s])
+        obj_path = self._obj_path(meta.obj_type_s, b58key_s)
+        shutil.rmtree(obj_path)
+
 
     def all_types(self):
         return [type_path.name for type_path in self.base_path.glob('*')]
@@ -171,13 +178,16 @@ class FileDB():
         for x in range(1, self.tree_depth + 1):
             expr += "/*"
         for obj_path in type_path.glob(expr):
-            yield self._direct_read(obj_path)
+            data = self._direct_read(obj_path)
+            if data == {}: # TODO: remove this cleanup
+                shutil.rmtree(obj_path)
+            else:
+                yield self._direct_read(obj_path)
 
 
 def __test__filedb__():
     test_path = Path("./__test")
     if(test_path.exists()):
-        import shutil
         shutil.rmtree(test_path)
 
     db = FileDB(test_path, "db_salt")
@@ -219,8 +229,15 @@ def __explore__():
         obj_meta = FileDBMeta(obj_type, obj_key_f)
         print(db.read(obj_key_v, obj_meta))
     else:
+        print("[")
         for obj in db.all(obj_type):
-            print(obj)
+            for key in obj.keys():
+                if isinstance(obj[key], str):
+                    if len(obj[key]) > 16:
+                        obj[key] = obj[key][:16] 
+            print(json.dumps(obj, indent=2, ensure_ascii=False))
+            print(",")
+        print("{}]")
 
 
 if __name__ == "__main__":

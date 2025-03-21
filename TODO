@@ -7,3 +7,4 @@
 - Add cross-reference for recent decrees with ext_id
 - Change HTML ids to ext_id instead of order
 - Add direct json exports for new positions and resigns
+- Check for repeated entries in llm generated lists (found some in decrees)

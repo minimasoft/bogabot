@@ -2,6 +2,7 @@
 
 from helpers import load_json_gz
 from pathlib import Path
+from bs4 import BeautifulSoup
 from global_config import gconf
 import json
 import gzip
@@ -80,6 +81,7 @@ class LLMTask():
 
     def generate(self, obj: dict, meta: dict) -> dict:
         return {
+            'task_key': f"{meta['type']}[{obj[meta['key']]}].{self.obj_attr}",
             'prompt': self._query(obj),
             'target_type': meta['type'],
             'target_key': meta['key'],
@@ -244,12 +246,13 @@ Norma a analizar:
             result['llm'] = value
             result['ref'] = clean
             infolegs = []
-            matches = law_ref()[clean]
-            for year in matches:
-                for infoleg_law in matches[year]:
-                    infolegs.append(str(infoleg_law['id']))
-            if len(infolegs) > 0:
-                result['infolegs'] = infolegs 
+            if clean in law_ref():
+                matches = law_ref()[clean]
+                for year in matches:
+                    for infoleg_law in matches[year]:
+                        infolegs.append(str(infoleg_law['id']))
+                if len(infolegs) > 0:
+                    result['infolegs'] = infolegs 
             results.append(result)
         print(results) # debug
         return results
@@ -342,10 +345,52 @@ class AnalysisTask(LLMTask):
         super().__init__('norm', 'analysis')
 
     def _select(self, norm: dict) -> bool:
-        return False
+        if 'tags' not in norm:
+            raise NotEnoughData
+        if 'law_ref' not in norm:
+            raise NotEnoughData
+        if 'decree_ref' not in norm:
+            raise NotEnoughData
+        tag_filter = all(tag not in ['#designacion','#renuncia','#multa'] for tag in norm['tags'])
+        bcra_filter = norm['name'].find("BANCO CENTRAL") == -1
+        aduana_filter = norm['name'].find("ADUANERO") == -1
+        asocia_filter = norm['name'].find("ASOCIATIVISMO") == -1
+        return tag_filter and bcra_filter and aduana_filter and asocia_filter
 
     def _query(self, norm: dict) -> str:
-        return ""
+        infolegs = set()
+        for ref in norm['law_ref']:
+            if 'infolegs' in ref:
+                for infoleg in ref['infolegs']:
+                    infolegs.add(infoleg)
+        for ref in norm['decree_ref']:
+            if 'infolegs' in ref:
+                for infoleg in ref['infolegs']:
+                    infolegs.add(infoleg)
+        print(f"trying to load: {infolegs}")
+        full_context = []
+        for infoleg_id in infolegs:
+            infoleg_file = Path(f"../data/infoleg_html/{infoleg_id[-1]}/{infoleg_id}.html")
+            if infoleg_file.exists():
+                with open(infoleg_file, 'r', encoding='utf-8') as infoleg_html:
+                    info_soup = BeautifulSoup(infoleg_html, 'html.parser')
+                    full_context.append(info_soup.text)
+                    print(f"context loaded: {infoleg_file}")
+        context_as_text = "A continuacion reglamentación de contexto, empieza en !CONTEXT_START y termina en !CONTEXT_END.\n\n!CONTEXT_START\n"
+        for context in full_context:
+            context_as_text += context
+            context_as_text += "\n\n"
+        context_as_text += "!CONTEXT_END\n"
+        prompt = """Explicar como la norma actual (a continuación entre !NORM_START y !NORM_END) afecta o impacta sobre las normas anteriores.
+En caso de modificar leyes anteriores explicar los beneficios afectados de la ley anterior.
+Mencionar derechos perdidos y posibles abusos con la nueva normativa.
+!NORM_START
+"""
+        prompt += norm_text(norm) + "\n!NORM_END\n"
+        result = context_as_text + prompt
+        print(f"Created mega context of: {len(result)}")
+        print(result)
+        return result
 
 
 def get_llm_task_map() -> dict:

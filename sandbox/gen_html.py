@@ -113,6 +113,33 @@ td {
             ref = result['ref']
             ref = markdown.markdown(ref)        
             html_o.write(f"<details><summary><b>Referencias</b></summary>{ref}</details>\n")
+
+        refs = ""
+        if 'law_ref' in result and len(result['law_ref']) > 0:
+            refs += f"<li>Leyes:<ul>\n"
+            for ref in result['law_ref']:
+                print(f"ref={ref}")
+                refs += f"<li>{ref['ref']}"
+                if 'infolegs' in ref:
+                    for infoleg in ref['infolegs']:
+                        refs += f"<br>infoleg <a href=https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id={infoleg}>{infoleg}</a>\n"
+                refs += "</li>\n"
+            refs += "</ul></li>\n"
+
+        if 'decree_ref' in result and len(result['decree_ref']) > 0:
+            refs += f"<li>Decretos:<ul>\n"
+            for ref in result['decree_ref']:
+                refs += f"<li>{ref['ref']}"
+                if 'infolegs' in ref:
+                    for infoleg in ref['infolegs']:
+                        refs += f"<br>infoleg <a href=https://servicios.infoleg.gob.ar/infolegInternet/verNorma.do?id={infoleg}>{infoleg}</a>\n"
+                refs += "</li>\n"
+            refs += "</ul></li>\n"
+        if refs != "":
+            refs = f"<ul>{refs}</ul>"
+            html_o.write(f"<details><summary><b>Referencias</b></summary>{refs}</details>\n")
+            
+
         if 'analysis' in result and result['analysis'] is not None:
             analysis = result['analysis']
             analysis = markdown.markdown(analysis)        

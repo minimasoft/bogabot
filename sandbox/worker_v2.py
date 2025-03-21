@@ -90,9 +90,10 @@ def query_ollama(model_name, prompt):
 def _hook_update_norm(norm: dict, norm_meta_d:dict, norm_map: dict):
     for attr in norm_map.keys():
         try:
-            if norm_map[attr].check(norm, norm_meta_d):
-                llm_task = norm_map[attr].generate(norm, norm_meta_d)
-                yield llm_task
+            if attr not in norm.keys():
+                if norm_map[attr].check(norm, norm_meta_d):
+                    llm_task = norm_map[attr].generate(norm, norm_meta_d)
+                    yield llm_task
         except NotEnoughData:
             pass
 
@@ -123,6 +124,10 @@ def __main__():
             for llm_task in filter(lambda t: target_attr == t['target_attr'], db.all(task_type)):
                 if 'start' in llm_task:
                     continue
+                if len(llm_task['prompt']) > (worker_config['ollama_num_ctx'] * 3.5):
+                    print(f"Context too big for this worker: {len(llm_task['prompt'])}")
+                    continue
+
                 llm_task['start'] = str(time_ns())
                 try:
                     db.write(llm_task, llm_task_meta, overwrite=False)
