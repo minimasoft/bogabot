@@ -22,6 +22,12 @@ class FileDBMeta():
     def __init__(self, obj_type_s: str, obj_key_field_s: str):
         self.obj_type_s = obj_type_s
         self.obj_key_field_s = obj_key_field_s
+    
+    def d(self) -> dict:
+        return {
+            'type': self.obj_type_s,
+            'key': self.obj_key_field_s,
+        }
 
 
 class FileDBKeyEncoder():
@@ -55,11 +61,13 @@ class FileDB():
         return path
 
     @contextmanager
-    def _lock(self, obj_path: Path):
+    def _lock(self, obj_path: Path, wait: bool=True):
         lock_path = obj_path / ".lock"
         lock_success = False
         while lock_success == False:
             while lock_path.exists():
+                if wait == False:
+                    return False
                 sleep(0.001)  # async-io some day
 
             with open(lock_path, 'w') as lock_fp:
@@ -111,8 +119,8 @@ class FileDB():
             new_data = {}
             old_data = {}
             for key in obj.keys():
-                if key == meta.obj_key_field_s:
-                    continue
+                #if key == meta.obj_key_field_s:
+                #    continue
                 if key not in current_obj.keys():
                     new_data[key] = obj[key]
                 else:

@@ -54,7 +54,7 @@ class LLMTask():
     def _select(self, obj: dict) -> bool:
         return True
 
-    def _query(self, obj: dict) -> dict:
+    def _query(self, obj: dict) -> str:
         raise NotImplementedError
 
     def _filter(self, llm_output:str) -> str:
@@ -63,18 +63,19 @@ class LLMTask():
     def check(self, obj: dict, meta: dict) -> bool:
         if meta['type'] != self.obj_type:
             raise BadObjectType
-        return self.llm_selector(obj)
+        return self._select(obj)
 
     def generate(self, obj: dict, meta: dict) -> dict:
         return {
-            'prompt': self.llm_query(obj),
+            'prompt': self._query(obj),
             'target_type': meta['type'],
             'target_key': meta['key'],
-            'target_attr': self.obj_key,
+            'target_key_v': obj[meta['key']],
+            'target_attr': self.obj_attr,
         }
 
     def post_process(self, llm_output:str, obj: dict) -> dict:
-        obj[self.obj_attr] = self.llm_filter(llm_output)
+        obj[self.obj_attr] = self._filter(llm_output)
         return obj
 
 
@@ -113,23 +114,23 @@ class TagsTask(LLMTask):
 
     def _query(self, norm: dict) -> str:
         prompt = """Clasifica la norma con los siguientes tags:
-    - #designacion : solo se utiliza para nombramientos, designaciones transitorias y promociones de una persona en particular
-    - #renuncia : solo se utiliza para renuncias.
-    - #multa : solo se utiliza para penalizaciones economicas o multas aplicadas a personas o empresas especificas.
-    - #laboral : solo se utiliza para normas y resoluciones que actualizan el salario o las reglas de trabajo para un gremio o grupo de trabajadores.
-    - #anses : solo se utiliza para normas que reglamentan o modifican temas relacionados con la seguridad social, el anses o las pensiones.
-    - #tarifas : solo se utiliza para normas que actualizan, o regulan tarifas de servicios.
-    - #administrativo : solo se utiliza para cuando se acepta o rechaza un recurso jerarquico de un expediente administrativo presentado por un una persona en particular. No usar para trámites administrativos ministeriales o de entes de control.
-    - #cierre: solo se utiliza para cuando se trata de cerrar alguna entidad u organismo.
-    - #subasta : solo se utiliza para cuando se trata de una subasta
-    - #presidencial : solo se utiliza cuando firma el presidente Milei
+- #designacion : solo se utiliza para nombramientos, designaciones transitorias y promociones de una persona en particular
+- #renuncia : solo se utiliza para renuncias.
+- #multa : solo se utiliza para penalizaciones economicas o multas aplicadas a personas o empresas especificas.
+- #laboral : solo se utiliza para normas y resoluciones que actualizan el salario o las reglas de trabajo para un gremio o grupo de trabajadores.
+- #anses : solo se utiliza para normas que reglamentan o modifican temas relacionados con la seguridad social, el anses o las pensiones.
+- #tarifas : solo se utiliza para normas que actualizan, o regulan tarifas de servicios.
+- #administrativo : solo se utiliza para cuando se acepta o rechaza un recurso jerarquico de un expediente administrativo presentado por un una persona en particular. No usar para trámites administrativos ministeriales o de entes de control.
+- #cierre: solo se utiliza para cuando se trata de cerrar alguna entidad u organismo.
+- #subasta : solo se utiliza para cuando se trata de una subasta
+- #presidencial : solo se utiliza cuando firma el presidente Milei
 
-    La respuesta debe ser una lista en formato JSON de los de tags acompañados de su probabilidad de 1.0 (seguro), 0.8 (casi seguro), 0.6 (probable), 0.3 (poco probable) a 0.0 (inexistente), sin markdown, si no hay tags la respuesta es [] (la lista vacia) y para #anses 0.8 y #presidencial 1.0 la respuesta es:
-    [["#anses", 0.8],["#presidencial", 1.0]]
+La respuesta debe ser una lista en formato JSON de los de tags acompañados de su probabilidad de 1.0 (seguro), 0.8 (casi seguro), 0.6 (probable), 0.3 (poco probable) a 0.0 (inexistente), sin markdown, si no hay tags la respuesta es [] (la lista vacia) y para #anses 0.8 y #presidencial 1.0 la respuesta es:
+[["#anses", 0.8],["#presidencial", 1.0]]
 
-    Norma a clasificar:
-    ```
-    """
+Norma a clasificar:
+```
+"""
         prompt += norm_text(norm) + "\n```\n"
 
         return prompt
@@ -149,7 +150,7 @@ class AppointmentTask(LLMTask):
     def __init__(self):
         super().__init__('norm', 'appoint_list')
 
-    def _selector(self, norm: dict) -> bool:
+    def _select(self, norm: dict) -> bool:
         if 'tags' not in norm:
             raise NotEnoughData
         return '#designacion' in norm['tags']
@@ -184,7 +185,7 @@ class ResignTask(LLMTask):
     def __init__(self):
         super().__init__('norm', 'resign_list')
 
-    def _selector(self, norm: dict) -> bool:
+    def _select(self, norm: dict) -> bool:
         if 'tags' not in norm:
             raise NotEnoughData
         return '#renuncia' in norm['tags']
@@ -314,7 +315,7 @@ class AnalysisTask(LLMTask):
     def __init__(self):
         super().__init__('norm', 'analysis')
 
-    def _selector(self, norm: dict) -> bool:
+    def _select(self, norm: dict) -> bool:
         return False
 
     def _query(self, norm: dict) -> str:
