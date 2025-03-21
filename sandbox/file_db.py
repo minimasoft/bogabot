@@ -2,7 +2,6 @@
 # Copyright (c) 2025 Minimasoft
 # look mum no db
 
-
 import gzip
 import json
 import time
@@ -75,13 +74,14 @@ class FileDB():
                     print(f"locked in: {obj_path}")
                     wait_n = 0
 
-            with open(lock_path, 'w') as lock_fp:
-                lock_fp.write(str(getpid()))
-                lock_fp.flush()
-                lock_success = True
-                yield lock_fp
-
-            lock_path.unlink()
+            try:
+                with open(lock_path, 'w') as lock_fp:
+                    lock_fp.write(str(getpid()))
+                    lock_fp.flush()
+                    lock_success = True
+                    yield lock_fp
+            finally:
+                lock_path.unlink()
 
 
     def _read_part(self, part_path: Path) -> dict:
@@ -93,15 +93,25 @@ class FileDB():
         with self._open(part_path, 'wt', encoding=self.encoding) as fp:
             json.dump(obj, fp, ensure_ascii=False)
 
-
     def _new_part_name(self):
         return f"{time.time_ns()}.jgz"
 
+    def _new_part_name_v2(self):
+        return f"{time.time_ns()}.json.gz"
 
     def _direct_read(self, obj_path: Path) -> dict:
         obj = dict()
+        #V1 format
         for data_part_path in sorted(obj_path.glob('*.jgz')):
             obj.update(self._read_part(data_part_path))
+
+        #V2 format
+        for data_part_path in sorted(obj_path.glob('*.json.gz')):
+            record = self._read_part(data_part_path)
+            for key in record['del']:
+                if key in obj:
+                    obj.pop(key)
+            obj.update(record['set'])
         return obj
 
 
@@ -109,7 +119,6 @@ class FileDB():
         b58key_s = self.key_enc.digest_s(key_s)
         obj_path = self._obj_path(meta.obj_type_s, b58key_s)
         return self._direct_read(obj_path)
-
 
     class NoOverwrite(Exception):
         pass
@@ -123,20 +132,23 @@ class FileDB():
             current_obj = self.read(obj[meta.obj_key_field_s], meta)
             new_data = {}
             old_data = {}
-            for key in obj.keys():
-                #if key == meta.obj_key_field_s:
-                #    continue
-                if key not in current_obj.keys():
+            for key in obj.keys() - current_obj.keys():
+                new_data[key] = obj[key]
+            for key in obj.keys() & current_obj.keys():
+                if type(obj[key]) != type(current_obj[key]) or obj[key] != current_obj[key]:
+                    if overwrite == False:
+                        raise FileDB.NoOverwrite
                     new_data[key] = obj[key]
-                else:
-                    if type(obj[key]) != type(current_obj[key]) or obj[key] != current_obj[key]:
-                        if overwrite == False:
-                            raise FileDB.NoOverwrite
-                        new_data[key] = obj[key]
-                        old_data[key] = current_obj[key]
-            # TODO: index processing, check fields for new_data and old_data
-            new_part_path = obj_path / self._new_part_name()
-            self._write_part(new_part_path, new_data)
+                    old_data[key] = current_obj[key]
+            del_keys = [ key for key in current_obj.keys() - obj.keys() ]
+            record = {
+                'del': del_keys,
+                'set': new_data
+            }
+            # TODO: index processing, check fields for new_data, old_data, etc
+            # TODO: hooks
+            new_part_path = obj_path / self._new_part_name_v2()
+            self._write_part(new_part_path, record)
 
     def all_types(self):
         return [type_path.name for type_path in self.base_path.glob('*')]
@@ -172,6 +184,11 @@ def __test__filedb__():
         print("overwrite test pass")
     print(db.read('1',meta))
     print(db.read('2',meta))
+    b = {"1": '2'}
+    db.write(b, meta)
+    print(f"{db.read('2',meta)} == {b} ?")
+    assert db.read('2',meta) == b
+
 
 def __explore__():
     db_path = Path(sys.argv[1])
