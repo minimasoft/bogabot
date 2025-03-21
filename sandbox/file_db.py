@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from hashlib import sha256
 from hmac import HMAC
 from pathlib import Path
-from time import sleep
+from time import sleep, time_ns
 from traceback import print_exc
 from os import getpid
 
@@ -94,10 +94,10 @@ class FileDB():
             json.dump(obj, fp, ensure_ascii=False)
 
     def _new_part_name(self):
-        return f"{time.time_ns()}.jgz"
+        return f"{time_ns()}.jgz"
 
     def _new_part_name_v2(self):
-        return f"{time.time_ns()}.json.gz"
+        return f"{time_ns()}.json.gz"
 
     def _direct_read(self, obj_path: Path) -> dict:
         obj = dict()
@@ -108,10 +108,12 @@ class FileDB():
         #V2 format
         for data_part_path in sorted(obj_path.glob('*.json.gz')):
             record = self._read_part(data_part_path)
-            for key in record['del']:
-                if key in obj:
-                    obj.pop(key)
-            obj.update(record['set'])
+            if 'del' in record:
+                for key in record['del']:
+                    if key in obj:
+                        obj.pop(key)
+            if 'set' in record:
+                obj.update(record['set'])
         return obj
 
 
@@ -142,9 +144,12 @@ class FileDB():
                     old_data[key] = current_obj[key]
             del_keys = [ key for key in current_obj.keys() - obj.keys() ]
             record = {
-                'del': del_keys,
-                'set': new_data
+                't': str(time_ns())
             }
+            if len(del_keys) > 0:
+                record['del'] = del_keys
+            if new_data != {}:
+                record['set'] = new_data
             # TODO: index processing, check fields for new_data, old_data, etc
             # TODO: hooks
             new_part_path = obj_path / self._new_part_name_v2()
