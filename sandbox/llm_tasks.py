@@ -29,7 +29,7 @@ def reso_ref():
 
 
 with open(gconf("DATA_PATH") / "mapa_context.txt", "r", encoding="utf-8") as fp:
-    mapa_context = f"Estos son los cargos conocidos al dia de hoy, solo para utilizar de referencia:\n```{fp.read()}\n```\n\n"
+    mapa_context = f"Solo para contexto estos son los cargos conocidos al 20 de Marzo de 2025:\n```{fp.read()}\n```\n\n"
 
 ### Useful stuff
 
@@ -139,7 +139,7 @@ Norma a clasificar:
         try:
             json_value = json.loads(llm_output)
         except Exception as e:
-            print(e.with_traceback())
+            print(f"error at json decode {e}:\n{llm_output}\n{'-'*40}")
             raise BadLLMData
         tag_limit = 0.5 # Ignore low confidence tags
         useful_tags = [ tag[0] for tag in json_value if float(tag[1]) > tag_limit ]
@@ -176,7 +176,7 @@ Norma:
         try:
             json_value = json.loads(llm_output)
         except Exception as e:
-            print(e.with_traceback())
+            print(f"error at json decode {e}:\n{llm_output}\n{'-'*40}")
             raise BadLLMData
         return json_value
 
@@ -210,7 +210,7 @@ Norma:
         try:
             json_value = json.loads(llm_output)
         except Exception as e:
-            print(e.with_traceback())
+            print(f"error at json decode {e}:\n{llm_output}\n{'-'*40}")
             raise BadLLMData
         return json_value
 
@@ -241,7 +241,7 @@ Norma a analizar:
         try:
             json_value = json.loads(llm_output)
         except Exception as e:
-            print(e.with_traceback())
+            print(f"error at json decode {e}:\n{llm_output}\n{'-'*40}")
             raise BadLLMData
         return json_value 
 
@@ -273,7 +273,7 @@ Norma:
         try:
             json_value = json.loads(llm_output)
         except Exception as e:
-            print(e.with_traceback())
+            print(f"error at json decode {e}:\n{llm_output}\n{'-'*40}")
             raise BadLLMData
         return json_value 
 
@@ -306,7 +306,7 @@ Norma:
         try:
             json_value = json.loads(llm_output)
         except Exception as e:
-            print(e.with_traceback())
+            print(f"error at json decode {e}:\n{llm_output}\n{'-'*40}")
             raise BadLLMData
         return json_value 
 

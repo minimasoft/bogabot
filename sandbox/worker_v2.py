@@ -51,6 +51,7 @@ def query_ollama(model_name, prompt):
                 "top_p": 0.5,
                 "num_ctx": worker_config['ollama_num_ctx'],
             }
+            "system": "Tu nombre es Bogabot. Eres un asistente legal preciso que genera reportes a pedido."
         }
 
         # Make the POST request to Ollama API
