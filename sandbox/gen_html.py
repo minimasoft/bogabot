@@ -27,7 +27,7 @@ target_date = f"{year}-{month:02}-{day:02}"
 results = [
     norm
     for norm in db.all(norm_meta.obj_type_s)
-    if norm['publish_date'] == target_date
+    if 'publish_date' in norm and norm['publish_date'] == target_date
 ]
 
 
@@ -85,8 +85,8 @@ td {
     appoint_list = []
     resign_list = []
     for result in sorted(results, key=lambda r: r['order']):
-        if 'appointment_list' in result:
-            for appointment in result['appointment_list']:
+        if 'appoint_list' in result:
+            for appointment in result['appoint_list']:
                 appointment['via'] = result['data_link']
                 appoint_list.append(appointment)
         if 'resign_list' in result:
