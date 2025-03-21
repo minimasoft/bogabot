@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 # Copyright Minimasoft (c) 2025
+
+#DEPRECATED
+# Move to worker v2
+# delete this when analysis job is successfully recreated
+
 from bs4 import BeautifulSoup
 from pathlib import Path
 import json

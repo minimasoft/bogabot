@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright (c) 2025 Minimasoft
+# look mum no db
 
-# write dict objects with types, never delete
 
 import gzip
 import json
