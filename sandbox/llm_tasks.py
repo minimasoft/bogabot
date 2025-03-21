@@ -11,18 +11,21 @@ import gzip
 
 _law_ref = None
 def law_ref():
+    global _law_ref
     if _law_ref is None:
         _law_ref = load_json_gz(gconf("DATA_PATH") / 'leyes_ref.json.gz')
     return _law_ref
 
 _decree_ref = None
 def decree_ref():
+    global _decree_ref
     if _decree_ref is None:
         _decree_ref = load_json_gz(gconf("DATA_PATH") / 'decretos_ref.json.gz')
     return _decree_ref
 
 _reso_ref = None
 def reso_ref():
+    global _reso_ref
     if _reso_ref is None:
         _reso_ref = load_json_gz(gconf("DATA_PATH") / 'reso_ref.json.gz')
     return _reso_ref
@@ -36,6 +39,7 @@ with open(gconf("DATA_PATH") / "mapa_context.txt", "r", encoding="utf-8") as fp:
 def norm_text(norm: dict):
     return norm['full_text'].replace('<p>','').replace('</p>','\n')
 
+
 class BadLLMData(Exception):
     pass
 
@@ -44,6 +48,15 @@ class NotEnoughData(Exception):
 
 class BadObjectType(Exception):
     pass
+
+
+def json_llm(llm_output: str) -> dict:
+    try:
+        return json.loads(llm_output)
+    except Exception as e:
+        print(f"error at json decode {e}:\n{llm_output}\n{'-'*40}")
+        raise BadLLMData
+
 
 
 class LLMTask():
@@ -136,11 +149,7 @@ Norma a clasificar:
         return prompt
 
     def _filter(self, llm_output: str) -> list:
-        try:
-            json_value = json.loads(llm_output)
-        except Exception as e:
-            print(f"error at json decode {e}:\n{llm_output}\n{'-'*40}")
-            raise BadLLMData
+        json_value = json_llm(llm_output)
         tag_limit = 0.5 # Ignore low confidence tags
         useful_tags = [ tag[0] for tag in json_value if float(tag[1]) > tag_limit ]
         return useful_tags
@@ -173,12 +182,7 @@ Norma:
         return prompt
 
     def _filter(self, llm_output: str) -> list:
-        try:
-            json_value = json.loads(llm_output)
-        except Exception as e:
-            print(f"error at json decode {e}:\n{llm_output}\n{'-'*40}")
-            raise BadLLMData
-        return json_value
+        return json_llm(llm_output)
 
 
 class ResignTask(LLMTask):
@@ -207,12 +211,7 @@ Norma:
         return prompt
 
     def _filter(self, llm_output: str) -> list:
-        try:
-            json_value = json.loads(llm_output)
-        except Exception as e:
-            print(f"error at json decode {e}:\n{llm_output}\n{'-'*40}")
-            raise BadLLMData
-        return json_value
+        return json_llm(llm_output)
 
 class LawRefTask(LLMTask):
     def __init__(self):
@@ -238,12 +237,23 @@ Norma a analizar:
         return prompt
 
     def _filter(self, llm_output: str) -> list:
-        try:
-            json_value = json.loads(llm_output)
-        except Exception as e:
-            print(f"error at json decode {e}:\n{llm_output}\n{'-'*40}")
-            raise BadLLMData
-        return json_value 
+        results = []
+        for value in json_llm(llm_output):
+            result = {}
+            clean = "".join(filter(lambda c: c.isdigit(), str(value)))
+            result['llm'] = value
+            result['ref'] = clean
+            infolegs = []
+            matches = law_ref()[clean]
+            for year in matches:
+                for infoleg_law in matches[year]:
+                    infolegs.append(str(infoleg_law['id']))
+            if len(infolegs) > 0:
+                result['infolegs'] = infolegs 
+            results.append(result)
+        print(results) # debug
+        return results
+
 
 class DecreeRefTask(LLMTask):
     def __init__(self):
@@ -270,12 +280,30 @@ Norma:
         return prompt
 
     def _filter(self, llm_output: str) -> list:
-        try:
-            json_value = json.loads(llm_output)
-        except Exception as e:
-            print(f"error at json decode {e}:\n{llm_output}\n{'-'*40}")
-            raise BadLLMData
-        return json_value 
+        results = []
+        for value in json_llm(llm_output):
+            result = {}
+            clean = "".join(filter(lambda c: c.isdigit() or c=='/', str(value)))
+            result['llm'] = value
+            infolegs = []
+            if '/' in clean:
+                dec_n, dec_y = clean.split('/')
+                if len(dec_y) == 2:
+                    if int(dec_y) < 30: #TODO: 1930 cap remove
+                        dec_y = "20"+dec_y
+                    else:
+                        dec_y = "19"+dec_y
+                result['ref'] = f"{dec_n}/{dec_y}"
+                if dec_n in decree_ref():
+                    decs = decree_ref()[dec_n]
+                    if dec_y in decs:
+                        for infoleg_dec in decs[dec_y]:
+                            infolegs.append(str(infoleg_dec['id']))
+                if len(infolegs) > 0:
+                    result['infolegs'] = infolegs 
+            results.append(result)
+        print(results) # debug
+        return results
 
 
 class ResolutionRefTask(LLMTask):
@@ -303,12 +331,10 @@ Norma:
         return prompt
 
     def _filter(self, llm_output: str) -> list:
-        try:
-            json_value = json.loads(llm_output)
-        except Exception as e:
-            print(f"error at json decode {e}:\n{llm_output}\n{'-'*40}")
-            raise BadLLMData
-        return json_value 
+        result = []
+        for value in json_llm(llm_output):
+            result.append(value.strip().replace('.',''))
+        return result
 
 
 class AnalysisTask(LLMTask):

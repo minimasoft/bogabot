@@ -100,6 +100,8 @@ td {
         html_o.write(f"<details open><summary><a href=#o_{result['order']}>o_{result['order']}</a> <b>{result['subject']}  -  {result['official_id'] or result['name']}</b><br>")
         if 'tags' in result:
             html_o.write(f"{' '.join(result['tags'])}")
+        else:
+            html_o.write("procesando tags...")
         html_o.write(f"</summary><hr>via: <a href={result['data_link']}>{result['data_link']}</a>\n")
         if 'brief' in result:
             brief = result['brief']

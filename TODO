@@ -1,6 +1,6 @@
+- Add hosted api worker
 - Add db hooks
 - Add generic worker code (process signal processing, auto-update)
-- Add watchdog for locks
 - Clean-up and organize fetch and cache of infoleg of law & decree
 - Add support for resolution linking with fetch & cleanup (in progress)
 - Add support for constitution context and norm analysis (when I have more gpus or moneyz)
