@@ -4,25 +4,32 @@ from pathlib import Path
 import json
 import markdown
 import sys
+from global_config import gconf
+from file_db import FileDB
 
-results_path = Path('../results/')
-results_path.mkdir(exist_ok=True)
 public_path = Path('../public/')
 public_path.mkdir(exist_ok=True)
 
 
-
-# Get BO and generate metadata
-day= int(sys.argv[1])
-month= int(sys.argv[2])
-year= int(sys.argv[3])
+day= 20
+month= 3
+year= 2025
 
 html_path = public_path / f"bo{year-2000}{month:02}{day:02}.html"
+norm_meta = gconf("NORM_META")
+db = FileDB(
+    gconf("FILEDB_PATH"),
+    gconf("FILEDB_SALT"),
+)
 
-results = []
-for result_path in results_path.glob(f"bo_{year}_{month:02}_{day:02}_el_*.json"):
-    with open(result_path, 'r', encoding='utf-8') as result_file:
-        results.append(json.load(result_file))
+
+target_date = f"{year}-{month:02}-{day:02}"
+results = [
+    norm
+    for norm in db.all(norm_meta.obj_type_s)
+    if norm['publish_date'] == target_date
+]
+
 
 with open(html_path, 'w') as html_o:
     html_o.write("""<!DOCTYPE html>
@@ -87,9 +94,13 @@ td {
                 resign['via'] = result['data_link']
                 resign_list.append(resign)
         html_o.write(f"<tr>\n<td><div id='o_{result['order']}' class='")
-        html_o.write(" ".join(tag[1:] for tag in result['tags']))
+        if 'tags' in result:
+            html_o.write(" ".join(tag[1:] for tag in result['tags']))
         html_o.write("'>\n")
-        html_o.write(f"<details open><summary><a href=#o_{result['order']}>o_{result['order']}</a> <b>{result['subject']}  -  {result['official_id'] or result['name']}</b><br>{' '.join(result['tags'])}</summary><hr>via: <a href={result['data_link']}>{result['data_link']}</a>\n")
+        html_o.write(f"<details open><summary><a href=#o_{result['order']}>o_{result['order']}</a> <b>{result['subject']}  -  {result['official_id'] or result['name']}</b><br>")
+        if 'tags' in result:
+            html_o.write("{' '.join(result['tags'])}")
+        html_o.write(f"</summary><hr>via: <a href={result['data_link']}>{result['data_link']}</a>\n")
         if 'brief' in result:
             brief = result['brief']
             brief = markdown.markdown(brief)        
