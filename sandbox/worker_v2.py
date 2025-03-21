@@ -105,39 +105,47 @@ def __main__():
         gconf("FILEDB_SALT"),
     )
     llm_task_meta = gconf("LLM_TASK_META")
+    task_type = llm_task_meta.obj_type_s
     norm_meta = gconf("NORM_META")
-    target_attr = sys.argv[2]
+    attr_arg = sys.argv[2]
     task_map = get_llm_task_map()
+    if attr_arg.find(',') > 0:
+        attr_list = [
+            attr.strip()
+            for attr in attr_arg.split(',')
+            ]
+    else:
+        attr_list = [ attr_arg ]
 
     running = True
     while running:
-        for llm_task in db.all(llm_task_meta.obj_type_s):
-            if target_attr != llm_task['target_attr']:
-                continue
-            if 'start' in llm_task:
-                continue
-            llm_task['start'] = str(time_ns())
-            try:
-                db.write(llm_task, llm_task_meta, overwrite=False)
-            except FileDB.NoOverwrite:
-                continue
-            llm_output = query_ollama(MODEL, llm_task['prompt'])
-            llm_task['model'] = MODEL
-            llm_task['num_ctx'] = worker_config['ollama_num_ctx']
-            llm_task['end'] = str(time_ns())
-            target_obj = db.read(llm_task['target_key_v'], norm_meta)
-            try:
-                task_map[
-                    llm_task['target_type']][
-                        llm_task['target_attr']
-                        ].post_process(llm_output, target_obj)
-            except BadLLMData:
-                continue 
-            db.write(target_obj, norm_meta)
-            # only write llm_task with 'end' after storing the result
-            db.write(llm_task, llm_task_meta)
-            for new_task in _hook_update_norm(target_obj, norm_meta.d(), task_map['norm']):
-                db.write(new_task, llm_task_meta)
+        for target_attr in attr_list:
+            for llm_task in filter(lambda t: target_attr == t['target_attr'], db.all(task_type)):
+                if 'start' in llm_task:
+                    continue
+                llm_task['start'] = str(time_ns())
+                try:
+                    db.write(llm_task, llm_task_meta, overwrite=False)
+                except FileDB.NoOverwrite:
+                    continue
+                llm_output = query_ollama(MODEL, llm_task['prompt'])
+                llm_task['model'] = MODEL
+                llm_task['num_ctx'] = worker_config['ollama_num_ctx']
+                llm_task['end'] = str(time_ns())
+                target_obj = db.read(llm_task['target_key_v'], norm_meta)
+                try:
+                    task_map[
+                        llm_task['target_type']][
+                            llm_task['target_attr']
+                            ].post_process(llm_output, target_obj)
+                except BadLLMData:
+                    # TODO: maybe tip next run to change the seed?
+                    continue 
+                db.write(target_obj, norm_meta)
+                # only write llm_task with 'end' after storing the result
+                db.write(llm_task, llm_task_meta)
+                for new_task in _hook_update_norm(target_obj, norm_meta.d(), task_map['norm']):
+                    db.write(new_task, llm_task_meta)
         print("Task cycle done. Will re-scan in 1 second...")
         sleep(0.99)
 
