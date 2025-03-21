@@ -16,6 +16,7 @@ month= 3
 year= 2025
 
 html_path = public_path / f"bo{year-2000}{month:02}{day:02}.html"
+json_path = public_path / f"bo{year-2000}{month:02}{day:02}.personal.json"
 norm_meta = gconf("NORM_META")
 db = FileDB(
     gconf("FILEDB_PATH"),
@@ -118,7 +119,6 @@ td {
         if 'law_ref' in result and len(result['law_ref']) > 0:
             refs += f"<li>Leyes:<ul>\n"
             for ref in result['law_ref']:
-                print(f"ref={ref}")
                 refs += f"<li>{ref['ref']}"
                 if 'infolegs' in ref:
                     for infoleg in ref['infolegs']:
@@ -153,3 +153,9 @@ td {
     html_o.write(json.dumps(resign_list, indent=2, ensure_ascii=False))
     html_o.write("\n</pre></div></td></tr>\n")
     html_o.write('\n</tbody></table></body></html>\n')
+    with open(json_path, 'wt', encoding='utf-8') as jf:
+        json.dump({
+            'in': appoint_list,
+            'out': resign_list,
+        },jf,ensure_ascii=False,indent=2)
+

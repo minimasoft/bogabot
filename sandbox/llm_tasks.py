@@ -137,8 +137,9 @@ class TagsTask(LLMTask):
 - #tarifas : solo se utiliza para normas que actualizan, o regulan tarifas de servicios.
 - #administrativo : solo se utiliza para cuando se acepta o rechaza un recurso jerarquico de un expediente administrativo presentado por un una persona en particular. No usar para trámites administrativos ministeriales o de entes de control.
 - #cierre: solo se utiliza para cuando se trata de cerrar alguna entidad u organismo.
-- #subasta : solo se utiliza para cuando se trata de una subasta
-- #presidencial : solo se utiliza cuando firma el presidente Milei
+- #subasta : solo se utiliza para cuando se trata de una subasta.
+- #edicto: solo se utiliza para edictos.
+- #presidencial : solo se utiliza cuando firma el presidente Milei.
 
 La respuesta debe ser una lista en formato JSON de los de tags acompañados de su probabilidad de 1.0 (seguro), 0.8 (casi seguro), 0.6 (probable), 0.3 (poco probable) a 0.0 (inexistente), sin markdown, si no hay tags la respuesta es [] (la lista vacia) y para #anses 0.8 y #presidencial 1.0 la respuesta es:
 [["#anses", 0.8],["#presidencial", 1.0]]
@@ -219,6 +220,12 @@ class LawRefTask(LLMTask):
     def __init__(self):
         super().__init__('norm', 'law_ref')
 
+    def _select(self, norm: dict) -> bool:
+        if 'tags' not in norm:
+            raise NotEnoughData
+        tag_filter = all(tag not in ['#designacion','#renuncia', '#edicto'] for tag in norm['tags'])
+        return tag_filter
+
     def _query(self, norm: dict) -> str:
         prompt = """Crear una lista en formato JSON de numeros de ley (sin artículos).
 Reglas:
@@ -261,6 +268,12 @@ Norma a analizar:
 class DecreeRefTask(LLMTask):
     def __init__(self):
         super().__init__('norm', 'decree_ref')
+
+    def _select(self, norm: dict) -> bool:
+        if 'tags' not in norm:
+            raise NotEnoughData
+        tag_filter = all(tag not in ['#designacion','#renuncia', '#edicto'] for tag in norm['tags'])
+        return tag_filter
 
     def _query(self, norm: dict) -> str:
         prompt = """Crear una lista en JSON de decretos mencionados:
@@ -312,6 +325,12 @@ Norma:
 class ResolutionRefTask(LLMTask):
     def __init__(self):
         super().__init__('norm', 'resolution_ref')
+
+    def _select(self, norm: dict) -> bool:
+        if 'tags' not in norm:
+            raise NotEnoughData
+        tag_filter = all(tag not in ['#designacion','#renuncia', '#edicto'] for tag in norm['tags'])
+        return tag_filter
     
     def _query(self, norm: dict) -> str:
         prompt = """Crear una lista en JSON de resoluciones mencionadas:
@@ -351,7 +370,7 @@ class AnalysisTask(LLMTask):
             raise NotEnoughData
         if 'decree_ref' not in norm:
             raise NotEnoughData
-        tag_filter = all(tag not in ['#designacion','#renuncia','#multa'] for tag in norm['tags'])
+        tag_filter = all(tag not in ['#edicto','#designacion','#renuncia','#multa'] for tag in norm['tags'])
         subjects_out = [
             "BANCO CENTRAL",
             "BANCO DE LA NACI",
