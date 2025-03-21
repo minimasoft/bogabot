@@ -50,7 +50,7 @@ def query_ollama(model_name, prompt):
                 "top_k": 24,
                 "top_p": 0.5,
                 "num_ctx": worker_config['ollama_num_ctx'],
-            }
+            },
             "system": "Tu nombre es Bogabot. Eres un asistente legal preciso que genera reportes a pedido."
         }
 
@@ -117,21 +117,25 @@ def __main__():
             if 'start' in llm_task:
                 continue
             llm_task['start'] = str(time_ns())
-            llm_task['model'] = MODEL
-            llm_task['num_ctx'] = worker_config['ollama_num_ctx']
             try:
                 db.write(llm_task, llm_task_meta, overwrite=False)
             except FileDB.NoOverwrite:
                 continue
             llm_output = query_ollama(MODEL, llm_task['prompt'])
+            llm_task['model'] = MODEL
+            llm_task['num_ctx'] = worker_config['ollama_num_ctx']
             llm_task['end'] = str(time_ns())
-            db.write(llm_task, llm_task_meta)
             target_obj = db.read(llm_task['target_key_v'], norm_meta)
-            print(task_map[llm_task['target_type']][llm_task['target_attr']].post_process(llm_output, target_obj))
+            task_map[
+                llm_task['target_type']][
+                    llm_task['target_attr']
+                    ].post_process(llm_output, target_obj)
             db.write(target_obj, norm_meta)
+            # only write llm_task with 'end' after storing the result
+            db.write(llm_task, llm_task_meta)
             for new_task in _hook_update_norm(target_obj, norm_meta.d(), task_map['norm']):
                 db.write(new_task, llm_task_meta)
-        print("Task cycle done... Will re-scan in 1 second")
+        print("Task cycle done. Will re-scan in 1 second...")
         sleep(0.99)
 
 
