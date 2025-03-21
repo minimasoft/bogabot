@@ -352,10 +352,17 @@ class AnalysisTask(LLMTask):
         if 'decree_ref' not in norm:
             raise NotEnoughData
         tag_filter = all(tag not in ['#designacion','#renuncia','#multa'] for tag in norm['tags'])
-        bcra_filter = norm['name'].find("BANCO CENTRAL") == -1
-        aduana_filter = norm['name'].find("ADUANERO") == -1
-        asocia_filter = norm['name'].find("ASOCIATIVISMO") == -1
-        return tag_filter and bcra_filter and aduana_filter and asocia_filter
+        subjects_out = [
+            "BANCO CENTRAL",
+            "BANCO DE LA NACI",
+            "ADUANERO",
+            "ASOCIATIVISMO"
+        ]
+        subjects_filter = all([
+            norm['subject'].find(subject) == -1
+            for subject in subjects_out
+        ])
+        return tag_filter and subjects_filter
 
     def _query(self, norm: dict) -> str:
         infolegs = set()

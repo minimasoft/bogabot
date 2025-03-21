@@ -25,9 +25,6 @@ def main():
     norm_meta = gconf("NORM_META")
     llm_task_meta = gconf("LLM_TASK_META")
     current_id = last_id 
-    # Cleanup tasks...
-    for task in file_db.all(llm_task_meta.obj_type_s):
-        file_db.delete(task, llm_task_meta)
     while current_id < max_id:
         print(current_id)
         norm = file_db.read(str(current_id), norm_meta)
@@ -46,6 +43,7 @@ def main():
                     if attr not in norm:
                         if norm_map[attr].check(norm, norm_meta.d()):
                             llm_task = norm_map[attr].generate(norm, norm_meta.d())
+                            # TODO: check previous task diff?
                             file_db.write(llm_task, llm_task_meta)
                 except NotEnoughData:
                     pass
