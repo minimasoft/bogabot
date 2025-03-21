@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # Copyright Minimasoft (c) 2025
+# wof wof
 
 import sys
 import os
