@@ -64,11 +64,16 @@ class FileDB():
     def _lock(self, obj_path: Path, wait: bool=True):
         lock_path = obj_path / ".lock"
         lock_success = False
+        wait_n = 0
         while lock_success == False:
             while lock_path.exists():
                 if wait == False:
                     return False
+                wait_n = wait_n + 1
                 sleep(0.001)  # async-io some day
+                if wait_n > 1000:
+                    print(f"locked in: {obj_path}")
+                    wait_n = 0
 
             with open(lock_path, 'w') as lock_fp:
                 lock_fp.write(str(getpid()))
@@ -110,7 +115,7 @@ class FileDB():
         pass
 
     def write(self, obj: dict, meta: FileDBMeta, overwrite: bool=True):
-        if obj == {}:
+        if obj == {}: # TODO: maybe review this, found a lot of '{}' json files
             raise Exception("No empty objects")
         b58key_s = self.key_enc.digest_s(obj[meta.obj_key_field_s])
         obj_path = self._obj_path(meta.obj_type_s, b58key_s)

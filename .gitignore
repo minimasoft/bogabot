@@ -174,3 +174,6 @@ cython_debug/
 tasks/
 public/
 results/
+filedb/
+sandbox/*.json
+sandbox/__test

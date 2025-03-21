@@ -97,9 +97,10 @@ def scan_bo_gob_ar_section_one(last_id):
         if new_task == {}:
             break
         else:
-            yield new_task
+            return new_task
 
         current_id += 1
+    return None
 
 
 def main():
@@ -115,10 +116,17 @@ def main():
     )
     norm_meta = gconf("NORM_META")
     llm_task_meta = gconf("LLM_TASK_META")
-    
-    for norm in scan_bo_gob_ar_section_one(last_id):
-        print(f"new task:\n{norm['ext_id']}")
-        file_db.write(norm, norm_meta)
+    current_id = last_id 
+    running = True
+    while running:
+        print(current_id)
+        norm = file_db.read(str(current_id), norm_meta)
+        if norm is None:
+            norm = scan_bo_gob_ar_section_one(current_id)
+            print(f"new task:\n{norm['ext_id']}")
+            file_db.write(norm, norm_meta)
+        if norm is None:
+            break
         norm_map = llm_task_map['norm']
         for attr in norm_map.keys():
             try:
@@ -127,6 +135,7 @@ def main():
                     file_db.write(llm_task, llm_task_meta)
             except NotEnoughData:
                 pass
+        current_id = current_id + 1
         
 
 

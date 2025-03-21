@@ -7,10 +7,10 @@ import markdown
 import sys
 import os
 import json
-from time import time_ns
+from time import time_ns, sleep
 from file_db import FileDB, FileDBMeta
 from global_config import gconf
-from llm_tasks import get_llm_task_map
+from llm_tasks import get_llm_task_map, NotEnoughData
 
 
 def load_json(fpath):
@@ -85,6 +85,16 @@ def query_ollama(model_name, prompt):
         return None
 
 
+# TODO: universal hooks for file db
+def _hook_update_norm(norm: dict, norm_meta_d:dict, norm_map: dict):
+    for attr in norm_map.keys():
+        try:
+            if norm_map[attr].check(norm, norm_meta_d):
+                llm_task = norm_map[attr].generate(norm, norm_meta_d)
+                yield llm_task
+        except NotEnoughData:
+            pass
+
 
 def __main__():
     global worker_config
@@ -118,6 +128,10 @@ def __main__():
             target_obj = db.read(llm_task['target_key_v'], norm_meta)
             print(task_map[llm_task['target_type']][llm_task['target_attr']].post_process(llm_output, target_obj))
             db.write(target_obj, norm_meta)
+            for new_task in _hook_update_norm(target_obj, norm_meta.d(), task_map['norm']):
+                db.write(new_task, llm_task_meta)
+        print("Task cycle done... Will re-scan in 1 second")
+        sleep(0.99)
 
 
 if __name__ == '__main__':

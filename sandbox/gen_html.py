@@ -11,7 +11,7 @@ public_path = Path('../public/')
 public_path.mkdir(exist_ok=True)
 
 
-day= 20
+day= 21
 month= 3
 year= 2025
 
@@ -99,12 +99,14 @@ td {
         html_o.write("'>\n")
         html_o.write(f"<details open><summary><a href=#o_{result['order']}>o_{result['order']}</a> <b>{result['subject']}  -  {result['official_id'] or result['name']}</b><br>")
         if 'tags' in result:
-            html_o.write("{' '.join(result['tags'])}")
+            html_o.write(f"{' '.join(result['tags'])}")
         html_o.write(f"</summary><hr>via: <a href={result['data_link']}>{result['data_link']}</a>\n")
         if 'brief' in result:
             brief = result['brief']
             brief = markdown.markdown(brief)        
             html_o.write(f"<p>{brief}</p>\n")
+        else:
+            html_o.write(f"<p>procesando resumen de bogabot...</p>")
         if 'ref' in result and result['ref'] is not None:
             ref = result['ref']
             ref = markdown.markdown(ref)        
