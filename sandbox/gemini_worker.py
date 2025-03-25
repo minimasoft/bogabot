@@ -22,8 +22,8 @@ def load_json(fpath):
 
 worker_config_path = Path(sys.argv[1]) # i.e. 'worker_local.json'
 worker_config = load_json(worker_config_path)
-
-gemini_api_key = worker_config['api_key']
+#api_key = str
+#num_ctx = int
 
 MODEL="gemini-2.0-flash-thinking-exp-01-21"
 
@@ -58,7 +58,7 @@ def query_gemini(model_name:str, prompt:str) -> str:
         contents=contents,
         config=generate_content_config,
     ):
-        full_response += chunk
+        full_response += str(chunk.text)
 
     return full_response
 
@@ -100,7 +100,7 @@ def __main__():
             for llm_task in filter(lambda t: target_attr == t['target_attr'], db.all(task_type)):
                 if 'start' in llm_task:
                     continue
-                if len(llm_task['prompt']) > (worker_config['ollama_num_ctx'] * 3.5):
+                if len(llm_task['prompt']) > int(worker_config['num_ctx'])*3.5:
                     print(f"Context too big for this worker: {len(llm_task['prompt'])}")
                     continue
 
@@ -109,9 +109,10 @@ def __main__():
                     db.write(llm_task, llm_task_meta, overwrite=False)
                 except FileDB.NoOverwrite:
                     continue
-                llm_output = query_ollama(MODEL, llm_task['prompt'])
+                llm_output = query_gemini(MODEL, llm_task['prompt'])
+                print(llm_output)
                 llm_task['model'] = MODEL
-                llm_task['num_ctx'] = worker_config['ollama_num_ctx']
+                llm_task['num_ctx'] = worker_config['num_ctx']
                 llm_task['end'] = str(time_ns())
                 target_obj = db.read(llm_task['target_key_v'], norm_meta)
                 assert target_obj != {}
@@ -121,6 +122,7 @@ def __main__():
                             llm_task['target_attr']
                             ].post_process(llm_output, target_obj)
                 except BadLLMData:
+                    print("BADLLMDATA")
                     # TODO: maybe tip next run to change the seed?
                     continue 
                 db.write(target_obj, norm_meta)
