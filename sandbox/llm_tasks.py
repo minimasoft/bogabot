@@ -112,6 +112,7 @@ Crear un resumen bajo las siguientes consignas:
 - Si hay datos tabulados solo menciona su existencia. 
 - Solo escribe el resumen, no ofrezcas mas ayuda, la respuesta es final.
 - El resumen debe tener como mucho 500 caracteres.
+- No mencionar que es un resumen.
 
 Norma a resumir:
 ```
@@ -144,6 +145,8 @@ class TagsTask(LLMTask):
 La respuesta debe ser una lista en formato JSON de los de tags acompañados de su probabilidad de 1.0 (seguro), 0.8 (casi seguro), 0.6 (probable), 0.3 (poco probable) a 0.0 (inexistente), sin markdown, si no hay tags la respuesta es [] (la lista vacia) y para #anses 0.8 y #presidencial 1.0 la respuesta es:
 [["#anses", 0.8],["#presidencial", 1.0]]
 
+Nota que la respuesta es sin indicaciones de formato json en markdown. Debe ser solo el json.
+
 Norma a clasificar:
 ```
 """
@@ -152,7 +155,7 @@ Norma a clasificar:
         return prompt
 
     def _filter(self, llm_output: str) -> list:
-        json_value = json_llm(llm_output)
+        json_value = json_llm(llm_output.replace('json','').replace('```',''))
         tag_limit = 0.5 # Ignore low confidence tags
         useful_tags = [ tag[0] for tag in json_value if float(tag[1]) > tag_limit ]
         return useful_tags
@@ -185,7 +188,8 @@ Norma:
         return prompt
 
     def _filter(self, llm_output: str) -> list:
-        return json_llm(llm_output)
+        json_value = json_llm(llm_output.replace('json','').replace('```',''))
+        return json_value
 
 
 class ResignTask(LLMTask):
@@ -214,7 +218,8 @@ Norma:
         return prompt
 
     def _filter(self, llm_output: str) -> list:
-        return json_llm(llm_output)
+        json_value = json_llm(llm_output.replace('json','').replace('```',''))
+        return json_value
 
 class LawRefTask(LLMTask):
     def __init__(self):
@@ -236,7 +241,7 @@ Reglas:
 - No incluir markdown para indicar que es JSON.
 
 Por ejemplo si se mencionan las leyes Ley N 12.443 y Ley 5.542:
-['12443', '5542']
+["12443", "5542"]
 
 Norma a analizar:
 ```
@@ -247,7 +252,7 @@ Norma a analizar:
 
     def _filter(self, llm_output: str) -> list:
         results = []
-        for value in json_llm(llm_output):
+        for value in json_llm(llm_output.replace('```','').replace('json','').replace("'",'"')):
             result = {}
             clean = "".join(filter(lambda c: c.isdigit(), str(value)))
             result['llm'] = value
@@ -287,7 +292,7 @@ Reglas:
 - No incluir markdown para indicar que es JSON.
 
 Por ejemplo si se mencionan los decretos Decreto N° 1023/01 y Decreto N° 1382 de fecha 9 de agosto de 2012:
-['1023/01', '1382/2012']
+["1023/01", "1382/2012"]
 
 Norma:
 ```
@@ -297,7 +302,7 @@ Norma:
 
     def _filter(self, llm_output: str) -> list:
         results = []
-        for value in json_llm(llm_output):
+        for value in json_llm(llm_output.replace('```','').replace('json','').replace("'",'"')):
             result = {}
             clean = "".join(filter(lambda c: c.isdigit() or c=='/', str(value)))
             result['llm'] = value
