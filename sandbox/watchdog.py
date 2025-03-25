@@ -13,7 +13,7 @@ from file_db import FileDB, FileDBMeta
 def check_dead_tasks(db, task_meta: dict, timeout_s: float=360.0):
     total = 0
     for task in db.all(task_meta.d()['type']):
-        if 'start' in task and 'end' not in 'task':
+        if 'start' in task and 'end' not in task:
             start = int(task['start'])
             elapsed_s = (time_ns() - int(task['start']))/10.0**9
             if elapsed_s > timeout_s:

@@ -11,7 +11,7 @@ public_path = Path('../public/')
 public_path.mkdir(exist_ok=True)
 
 
-day= 21
+day= 25
 month= 3
 year= 2025
 
@@ -85,7 +85,7 @@ td {
     html_o.write(f"{day}/{month}/{year}</h2></td></tr>")
     appoint_list = []
     resign_list = []
-    for result in sorted(results, key=lambda r: r['order']):
+    for result in sorted(results, key=lambda r: r['ext_id']):
         if 'appoint_list' in result:
             for appointment in result['appoint_list']:
                 appointment['via'] = result['data_link']
@@ -94,11 +94,11 @@ td {
             for resign in result['resign_list']:
                 resign['via'] = result['data_link']
                 resign_list.append(resign)
-        html_o.write(f"<tr>\n<td><div id='o_{result['order']}' class='")
+        html_o.write(f"<tr>\n<td><div id='bo{result['ext_id']}' class='")
         if 'tags' in result:
             html_o.write(" ".join(tag[1:] for tag in result['tags']))
         html_o.write("'>\n")
-        html_o.write(f"<details open><summary><a href=#o_{result['order']}>o_{result['order']}</a> <b>{result['subject']}  -  {result['official_id'] or result['name']}</b><br>")
+        html_o.write(f"<details open><summary><a href=#bo{result['ext_id']}><img src='svg/link.svg'></a> <b>{result['subject']}  -  {result['official_id'] or result['name']}</b><br>")
         if 'tags' in result:
             html_o.write(f"{' '.join(result['tags'])}")
         else:

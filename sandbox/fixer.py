@@ -13,8 +13,8 @@ from llm_tasks import get_llm_task_map, NotEnoughData
 
 
 def main():
-    last_id = 322806
-    max_id = 322900
+    last_id = 322860
+    max_id = 322950
 
     llm_task_map = get_llm_task_map()
 
@@ -24,6 +24,7 @@ def main():
     )
     norm_meta = gconf("NORM_META")
     llm_task_meta = gconf("LLM_TASK_META")
+    all_for_date = file_db.all(llm_task_meta)
     current_id = last_id 
     while current_id < max_id:
         print(current_id)
