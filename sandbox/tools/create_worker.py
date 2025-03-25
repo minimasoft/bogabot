@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/user/src/bogabot/venv/bin/python
 import sys
 import json
 

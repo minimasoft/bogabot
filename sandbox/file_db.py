@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/user/src/bogabot/venv/bin/python
 # Copyright (c) 2025 Minimasoft
 # look mum no db
 

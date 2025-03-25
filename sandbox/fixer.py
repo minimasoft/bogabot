@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/user/src/bogabot/venv/bin/python
 # Copyright (c) 2025 Minimasoft
 
 import json
@@ -28,7 +28,7 @@ def main():
     while current_id < max_id:
         print(current_id)
         norm = file_db.read(str(current_id), norm_meta)
-        if norm is not None and norm != {}:
+        if norm != {}:
             dirty = False
             if 'law_ref' in norm:
                 if len(norm['law_ref']) > 0:

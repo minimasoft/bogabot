@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/user/src/bogabot/venv/bin/python
 # Copyright Minimasoft (c) 2025
 from pathlib import Path
 import requests
@@ -138,6 +138,7 @@ def __main__():
                 llm_task['num_ctx'] = worker_config['ollama_num_ctx']
                 llm_task['end'] = str(time_ns())
                 target_obj = db.read(llm_task['target_key_v'], norm_meta)
+                assert target_obj != {}
                 try:
                     task_map[
                         llm_task['target_type']][

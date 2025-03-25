@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/user/src/bogabot/venv/bin/python
 # Copyright Minimasoft (c) 2025
 # New BO scrapper that can see the future (tm)
 
@@ -121,7 +121,7 @@ def main():
     while running:
         print(current_id)
         norm = file_db.read(str(current_id), norm_meta)
-        if norm is None:
+        if norm == {}:
             norm = scan_bo_gob_ar_section_one(current_id)
             print(f"new task:\n{norm['ext_id']}")
             file_db.write(norm, norm_meta)

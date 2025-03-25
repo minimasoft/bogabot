@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/user/src/bogabot/venv/bin/python
 # Copyright Minimasoft (c) 2025
 from pathlib import Path
 import json
