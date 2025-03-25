@@ -24,6 +24,8 @@ worker_config_path = Path(sys.argv[1]) # i.e. 'worker_local.json'
 worker_config = load_json(worker_config_path)
 #api_key = str
 #num_ctx = int
+#rpm = int
+#rpd = int
 
 MODEL="gemini-2.0-flash-thinking-exp-01-21"
 
@@ -94,6 +96,9 @@ def __main__():
     else:
         attr_list = [ attr_arg ]
 
+    last_start = 0
+    # 60 seconds / requests_per_minute in ns + 1 second
+    nspr = (60*10**9) / int(worker_config['rpm']) + 10**9
     running = True
     while running:
         for target_attr in attr_list:
@@ -103,8 +108,12 @@ def __main__():
                 if len(llm_task['prompt']) > int(worker_config['num_ctx'])*3.5:
                     print(f"Context too big for this worker: {len(llm_task['prompt'])}")
                     continue
+                # rate limit
+                while time_ns() < (last_start+nspr):
+                    sleep(0.1)
 
-                llm_task['start'] = str(time_ns())
+                last_start = time_ns()
+                llm_task['start'] = str(last_start)
                 try:
                     db.write(llm_task, llm_task_meta, overwrite=False)
                 except FileDB.NoOverwrite:
