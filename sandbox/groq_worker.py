@@ -40,22 +40,15 @@ def query_deep(model_name:str, prompt:str) -> str:
             {"role": "system", "content": "You are bogabot, a helpful and precise law asistant for Argentina"},
             {"role": "user", "content": prompt}
         ],
+        temperature=0.42,
         stream=False
     )
     llm_response = response.choices[0].message.content
-    is_thinking = llm_response.find("<think>")
-    end_of_think = llm_response.find("</think>")
-    if end_of_think > 0:
-        llm_response = llm_response[(end_of_think+8):]
-    if is_thinking >= 0 and end_of_think < 0:
-        print("--------------------------------------------------")
-        print("---------THINK OUTPUT ERROR-----:O :O :O----------")
-        print("--------------------------------------------------")
-        print(f"Input:\n{prompt}\n")
-        print("--------------------------------------------------")
-        print("------------------------------------------OMG-----")
-        print("--------------------------------------------------")
-        
+    response_parts = llm_response.split("</think>")
+    if len(response_parts) > 1:
+        llm_response = response_parts[-1]
+        if len(response_parts) > 2:
+            print(f"{'*'*80}\nWeird 3 part response: {response_parts}\n{'*'*80}") 
     return llm_response
 
 # TODO: universal hooks for file db
