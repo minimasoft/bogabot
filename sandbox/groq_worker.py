@@ -25,25 +25,38 @@ worker_config = load_json(worker_config_path)
 #rpm = int
 #rpd = int
 
-MODEL="deepseek-reason"
+MODEL="qwen-qwq-32b"
 
 
 def query_deep(model_name:str, prompt:str) -> str:
     global worker_config
     client = OpenAI(
         api_key=worker_config['api_key'],
-        base_url="https://api.deepseek.com"
+        base_url="https://api.groq.com/openai/v1/"
     )
     response = client.chat.completions.create(
-        model=model,
+        model=model_name,
         messages=[
             {"role": "system", "content": "You are bogabot, a helpful and precise law asistant for Argentina"},
             {"role": "user", "content": prompt}
         ],
         stream=False
     )
-
-    return response.choices[0].message.content
+    llm_response = response.choices[0].message.content
+    is_thinking = llm_response.find("<think>")
+    end_of_think = llm_response.find("</think>")
+    if end_of_think > 0:
+        llm_response = llm_response[(end_of_think+8):]
+    if is_thinking >= 0 and end_of_think < 0:
+        print("--------------------------------------------------")
+        print("---------THINK OUTPUT ERROR-----:O :O :O----------")
+        print("--------------------------------------------------")
+        print(f"Input:\n{prompt}\n")
+        print("--------------------------------------------------")
+        print("------------------------------------------OMG-----")
+        print("--------------------------------------------------")
+        
+    return llm_response
 
 # TODO: universal hooks for file db
 def _hook_update_norm(norm: dict, norm_meta_d:dict, norm_map: dict):
@@ -59,7 +72,7 @@ def _hook_update_norm(norm: dict, norm_meta_d:dict, norm_map: dict):
 
 def __main__():
     global worker_config
-    print(f"Bogabot deepseek api worker pid={os.getpid()}")
+    print(f"Bogabot groq api worker pid={os.getpid()}")
     db = FileDB(
         gconf("FILEDB_PATH"),
         gconf("FILEDB_SALT"),
