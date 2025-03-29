@@ -10,20 +10,30 @@ from global_config import gconf
 from file_db import FileDB, FileDBMeta
 
 
-def check_dead_tasks(db, task_meta: dict, timeout_s: float=360.0):
-    total = 0
+def check_dead_tasks(db, task_meta: dict, timeout_s: float=300.0):
+    unresponsive = 0
+    processing = 0
+    pending = 0
+    completed = 0
     for task in db.all(task_meta.d()['type']):
         if 'start' in task and 'end' not in task:
             start = int(task['start'])
             elapsed_s = (time_ns() - int(task['start']))/10.0**9
             if elapsed_s > timeout_s:
-                total = total + 1
+                unresponsive = unresponsive + 1
                 print(
                     f"'{task['target_type']}[{task['target_key_v']}].{task['target_attr']}'" +\
                         f" task dead for {elapsed_s/60:.2f} minutes will retry.")
                 task.pop('start')
                 db.write(task, task_meta)
-    print(f"Found {total} unresponsive {task_meta.d()['type']}.")
+            else:
+                processing = processing + 1
+        elif 'start' in task and 'end' in task:
+            completed = completed + 1
+        else:
+            pending = pending + 1
+    print(f"Found {unresponsive} unresponsive {task_meta.d()['type']}.")
+    print(f"{completed}/{pending}/{processing} completed/pending/processing {task_meta.d()['type']}.")
 
 def check_locks(db):
     for lock_path in db._all_locks():
