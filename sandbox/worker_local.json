@@ -1,5 +1,5 @@
 {
   "ollama_base_url": "http://localhost:11434",
   "ollama_login_token": "",
-  "ollama_num_ctx": 13131
+  "ollama_num_ctx": 13000
 }

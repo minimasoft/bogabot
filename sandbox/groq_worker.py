@@ -92,6 +92,11 @@ def __main__():
             for llm_task in filter(lambda t: target_attr == t['target_attr'], db.all(task_type)):
                 if 'start' in llm_task:
                     continue
+                target_obj = db.read(llm_task['target_key_v'], norm_meta)
+                assert target_obj != {}
+                if llm_task['target_attr'] in target_obj.keys():
+                    print("duplicated task? TODO: implement force")
+                    continue
                 if len(llm_task['prompt']) > int(worker_config['num_ctx'])*3.5:
                     print(f"Context too big for this worker: {len(llm_task['prompt'])}")
                     continue
@@ -110,8 +115,6 @@ def __main__():
                 llm_task['model'] = MODEL
                 llm_task['num_ctx'] = worker_config['num_ctx']
                 llm_task['end'] = str(time_ns())
-                target_obj = db.read(llm_task['target_key_v'], norm_meta)
-                assert target_obj != {}
                 try:
                     task_map[
                         llm_task['target_type']][

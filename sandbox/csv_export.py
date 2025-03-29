@@ -25,17 +25,17 @@ def main():
         gconf("FILEDB_SALT"),
     )
     norm_meta = gconf("NORM_META")
-    attrs = list("name,gov_id,gov_section,position,position_start,position_duration_days".split(","))
+    attrs = list("norm_publish_date,name,gov_id,gov_section,position,position_start,position_duration_days,norm_official_id,norm_link".split(","))
     with open('test.csv','w',encoding='utf-8') as csv_f:
-        csv_f.write(f"# bogabot data: appoint_list dump {asctime()}\n")
-        csv_f.write(f"# errata:\n")
-        csv_f.write(f"# - Algunos casos de designación de interventor en organizaciones son clasificados por error\n")
-        csv_f.write(f"# - gov_id puede ser dni o cuit\n")
         writer = DictWriter(csv_f, fieldnames=attrs, dialect='excel')
         writer.writeheader()
-        for norm in file_db.all(norm_meta.obj_type_s):
+        for norm in sorted(file_db.all(norm_meta.obj_type_s),key=lambda n: int(n['ext_id'])):
             if 'appoint_list' in norm and len(norm['appoint_list']) > 0:
-                writer.writerows(norm['appoint_list'])
+                for appoint in norm['appoint_list']:
+                    appoint['norm_official_id'] = norm['official_id']
+                    appoint['norm_link'] = f'=HYPERLINK("{norm["data_link"]}")'
+                    appoint['norm_publish_date'] = norm['publish_date']
+                    writer.writerow(appoint)
 
 
 if __name__ == '__main__':
