@@ -124,9 +124,9 @@ def __main__():
             for llm_task in filter(lambda t: target_attr == t['target_attr'], db.all(task_type)):
                 if 'start' in llm_task:
                     continue
-                if len(llm_task['prompt']) > (worker_config['ollama_num_ctx'] * 3.5):
-                    print(f"Context too big for this worker: {len(llm_task['prompt'])}")
-                    continue
+                #if len(llm_task['prompt']) > (worker_config['ollama_num_ctx'] * 3.5):
+                #    print(f"Context too big for this worker: {len(llm_task['prompt'])}")
+                #    continue
 
                 llm_task['start'] = str(time_ns())
                 try:

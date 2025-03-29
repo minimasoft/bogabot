@@ -13,6 +13,7 @@ from requests.adapters import HTTPAdapter, Retry
 from file_db import FileDB, FileDBMeta
 from global_config import gconf
 from llm_tasks import get_llm_task_map, NotEnoughData
+from time import sleep
 
 
 def bo_gob_ar_url():
@@ -34,7 +35,6 @@ def scan_bo_gob_ar_section_one(last_id):
     session = bo_gob_ar_session()
     found_page = True
     current_id=last_id
-
     while found_page:
         data_link =f"{bo_gob_ar_url()}/detalleAviso/primera/{current_id}/1" # Yes... I know. Did you know?
         new_task = {}
@@ -47,6 +47,7 @@ def scan_bo_gob_ar_section_one(last_id):
             title_div = soup.find('div', {'id': 'tituloDetalleAviso'})
             if title_div is None:
                 current_id = current_id + 1
+                return None
                 continue
 
             new_task['subject'] = title_div.find('h1').text.strip()
@@ -117,29 +118,45 @@ def main():
     norm_meta = gconf("NORM_META")
     llm_task_meta = gconf("LLM_TASK_META")
     current_id = last_id 
+    last_new_task = last_id -1
     running = True
     while running:
-        print(current_id)
+        # don't scan too far
+        if (current_id - last_new_task) > 121:
+            if last_new_task > last_id:
+                print("my work here is done.")
+                sys.exit(0)
+            print("too far... sleep and restart.")
+            current_id = last_id
+            sleep(5) # don't hit it too hard
+            continue
+        # check if already loaded
+        print(f"check: {current_id}")
         norm = file_db.read(str(current_id), norm_meta)
         if norm == {}:
+            # scan
+            print(f"scan: {current_id}")
             norm = scan_bo_gob_ar_section_one(current_id)
-            print(f"new task:\n{norm['ext_id']}")
-            file_db.write(norm, norm_meta)
-        if norm is None:
-            break
-        norm_map = llm_task_map['norm']
-        for attr in norm_map.keys():
-            try:
-                if attr not in norm:
-                    if norm_map[attr].check(norm, norm_meta.d()):
-                        llm_task = norm_map[attr].generate(norm, norm_meta.d())
-                        file_db.write(llm_task, llm_task_meta)
-            except NotEnoughData:
-                pass
+            if norm is not None:
+                print(f"new task:\n{norm['ext_id']}")
+                last_new_task = current_id
+                file_db.write(norm, norm_meta)
+            else:
+                current_id = current_id+30 #sparse checks
+                continue
+        if norm is not None:
+            norm_map = llm_task_map['norm']
+            for attr in norm_map.keys():
+                try:
+                    if attr not in norm:
+                        if norm_map[attr].check(norm, norm_meta.d()):
+                            llm_task = norm_map[attr].generate(norm, norm_meta.d())
+                            file_db.write(llm_task, llm_task_meta)
+                except NotEnoughData:
+                    pass
         current_id = current_id + 1
         
 
 
 if __name__ == '__main__':
     main()
-

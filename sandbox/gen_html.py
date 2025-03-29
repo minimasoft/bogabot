@@ -11,7 +11,7 @@ public_path = Path('../public/')
 public_path.mkdir(exist_ok=True)
 
 
-day= 25
+day= 28
 month= 3
 year= 2025
 
@@ -67,6 +67,18 @@ td {
   padding: 10px;
 }
 
+.details_1 > summary {
+  list-style: none;
+}
+
+.details_1 > summary::-webkit-details-marker {
+  display: none;
+}
+
+.svg_icon {
+    color: #222222;
+}
+
 .json_data {
   overflow: scroll;
   max-width: 1000px;
@@ -98,7 +110,7 @@ td {
         if 'tags' in result:
             html_o.write(" ".join(tag[1:] for tag in result['tags']))
         html_o.write("'>\n")
-        html_o.write(f"<details open><summary><a href=#bo{result['ext_id']}><img src='svg/link.svg'></a> <b>{result['subject']}  -  {result['official_id'] or result['name']}</b><br>")
+        html_o.write(f"<details open class=details_1><summary><a href=#bo{result['ext_id']}><img class=svg_icon src='svg/l.svg'></a> <b>{result['subject']}  -  {result['official_id'] or result['name']}</b><br>")
         if 'tags' in result:
             html_o.write(f"{' '.join(result['tags'])}")
         else:

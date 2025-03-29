@@ -13,7 +13,7 @@ from llm_tasks import get_llm_task_map, NotEnoughData
 
 
 def main():
-    last_id = 322860
+    last_id = 322000
     max_id = 322950
 
     llm_task_map = get_llm_task_map()
