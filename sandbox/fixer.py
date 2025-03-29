@@ -13,7 +13,7 @@ from llm_tasks import get_llm_task_map, NotEnoughData
 
 
 def main():
-    last_id = 322000
+    last_id = 3419000
     max_id = 322950
 
     llm_task_map = get_llm_task_map()
@@ -24,7 +24,6 @@ def main():
     )
     norm_meta = gconf("NORM_META")
     llm_task_meta = gconf("LLM_TASK_META")
-    all_for_date = file_db.all(llm_task_meta)
     current_id = last_id 
     while current_id < max_id:
         print(current_id)
@@ -44,11 +43,28 @@ def main():
                     if attr not in norm:
                         if norm_map[attr].check(norm, norm_meta.d()):
                             llm_task = norm_map[attr].generate(norm, norm_meta.d())
-                            # TODO: check previous task diff?
-                            file_db.write(llm_task, llm_task_meta)
+                            llm_task_prev = file_db.read(llm_task[llm_task_meta.obj_key_field_s], llm_task_meta)
+                            if llm_task_prev != {}:
+                                print("nothing")
+                            else:
+                                file_db.write(llm_task, llm_task_meta)
                 except NotEnoughData:
                     pass
         current_id = current_id + 1
+    all_tasks = file_db.all(llm_task_meta.obj_type_s)
+    by_attr_count = {}
+    for task in all_tasks:
+        if 'start' not in task:
+            norm = file_db.read(str(task['target_key_v']), norm_meta)
+            attr = task['target_attr']
+            if attr in norm.keys():
+                print(f"WUT {llm_task} \n\n {norm}")
+            if attr not in by_attr_count.keys():
+                by_attr_count[attr] = 1
+            else:
+                by_attr_count[attr] += 1
+
+    print(by_attr_count)
         
 
 

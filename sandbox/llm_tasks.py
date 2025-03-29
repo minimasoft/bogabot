@@ -56,6 +56,15 @@ def json_llm(llm_output: str) -> dict:
         return json.loads(llm_output)
     except Exception as e:
         print(f"error at json decode {e}:\n{llm_output}\n{'-'*40}")
+        # let's retry something else:
+        final= llm_output.find("inal answer")
+        if final > 0:
+            try:
+                print('*'*80)
+                print("TRYING FIX!")
+                return json.loads(llm_output[final:].split('\n')[-1])
+            except Exception as ee:
+                pass
         raise BadLLMData
 
 
@@ -236,9 +245,9 @@ class LawRefTask(LLMTask):
 Reglas:
 - Solo deben ser leyes: ignorar decretos, resoluciones, comunicaciones u otro tipo de normas.
 - Sin comentarios.
-- Sin repetidos. 
 - En caso de no existir leyes mencionadas la respuesta es un vector vacio: '[]'.
 - No incluir markdown para indicar que es JSON.
+- No pensarlo demasiado.
 
 Por ejemplo si se mencionan las leyes Ley N 12.443 y Ley 5.542:
 ["12443", "5542"]
@@ -287,9 +296,9 @@ Reglas:
 - El año puede estar con 2 dígitos o 4 dígitos, conservar el formato con el que está escrito.
 - No incluir leyes, resoluciones ni otro tipo de normas.
 - Sin comentarios.
-- Sin repetidos.
 - Si no se mencionan decretos la respuesta es una lista vacia: '[]'.
 - No incluir markdown para indicar que es JSON.
+- No pensarlo demasiado.
 
 Por ejemplo si se mencionan los decretos Decreto N° 1023/01 y Decreto N° 1382 de fecha 9 de agosto de 2012:
 ["1023/01", "1382/2012"]
@@ -344,7 +353,6 @@ Reglas:
 - Mencionar el número de resolución y el año con el formato '123/2002' si el número es 123 y el año 2002.
 - No incluir leyes, decretos ni otro tipo de normas.
 - Sin comentarios.
-- Sin repetidos.
 - Si no se mencionan resoluciones la respuesta es una lista vacia: '[]'.
 - No incluir markdown para indicar que es JSON.
 
@@ -386,7 +394,7 @@ class AnalysisTask(LLMTask):
             norm['subject'].find(subject) == -1
             for subject in subjects_out
         ])
-        return tag_filter and subjects_filter
+        return norm['official_id'] != "" and tag_filter and subjects_filter
 
     def _query(self, norm: dict) -> str:
         infolegs = set()
@@ -398,7 +406,7 @@ class AnalysisTask(LLMTask):
             if 'infolegs' in ref:
                 for infoleg in ref['infolegs']:
                     infolegs.add(infoleg)
-        print(f"trying to load: {infolegs}")
+        print(f"trying to load: {list(infolegs)}")
         full_context = []
         for infoleg_id in infolegs:
             infoleg_file = Path(f"../data/infoleg_html/{infoleg_id[-1]}/{infoleg_id}.html")
@@ -406,7 +414,6 @@ class AnalysisTask(LLMTask):
                 with open(infoleg_file, 'r', encoding='utf-8') as infoleg_html:
                     info_soup = BeautifulSoup(infoleg_html, 'html.parser')
                     full_context.append(info_soup.text)
-                    print(f"context loaded: {infoleg_file}")
         context_as_text = "A continuacion reglamentación de contexto, empieza en !CONTEXT_START y termina en !CONTEXT_END.\n\n!CONTEXT_START\n"
         for context in full_context:
             context_as_text += context
@@ -420,7 +427,6 @@ Mencionar derechos perdidos y posibles abusos con la nueva normativa.
         prompt += norm_text(norm) + "\n!NORM_END\n"
         result = context_as_text + prompt
         print(f"Created mega context of: {len(result)}")
-        print(result)
         return result
 
 
