@@ -44,7 +44,7 @@ while(curr_date <= today):
         skip_write = False
         if html_path.exists() == True:
             html_time = html_path.stat().st_ctime
-            result_time = max(map(lambda r: r['_time'], results)) + 1
+            result_time = max(map(lambda r: r.e()['time'], results)) + 1
             if result_time < html_time:
                 print(f"Skip write, already up to date")
                 skip_write = True

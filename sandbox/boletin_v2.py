@@ -93,7 +93,7 @@ def scan_bo_gob_ar_section_one(current_id, meta):
 
 
 def main():
-    last_id = 323102 # helper
+    last_id = 323186 # helper
     if len(sys.argv) == 2:
         last_id = int(sys.argv[1])
 
@@ -130,7 +130,7 @@ def main():
                 last_new_task = current_id
                 file_db.write(norm)
             else:
-                current_id = current_id+30 #sparse checks
+                current_id += 1
                 continue
         if norm is not None:
             norm_map = llm_task_map['norm']

@@ -276,7 +276,7 @@ Norma a analizar:
                 if len(infolegs) > 0:
                     result['infolegs'] = infolegs 
             results[clean] = result
-        return results.values()
+        return list(results.values())
 
 
 class DecreeRefTask(LLMTask):
@@ -333,7 +333,7 @@ Norma a analizar:
                 if len(infolegs) > 0:
                     result['infolegs'] = infolegs 
             results[clean] = result
-        return results.values()
+        return list(results.values())
 
 
 class ResolutionRefTask(LLMTask):

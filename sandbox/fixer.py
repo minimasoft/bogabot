@@ -60,17 +60,26 @@ def main():
     for task in all_tasks:
         by_attr_count['_scanned'] += 1
         if 'start' not in task:
-            norm = file_db.read(str(task['target_key_v']), norm_meta)
-            attr = task['target_attr']
-            if attr in norm.keys():
-                print(f"WUT {llm_task} \n\n {norm}")
-            if attr not in by_attr_count.keys():
-                by_attr_count[attr] = 1
+            norm_ext_id = int(task['target_key_v'])
+            if norm_ext_id < 323185:
+                # Clean-up old tasks
+                file_db.delete(task)
             else:
-                by_attr_count[attr] += 1
+                norm = file_db.read(str(task['target_key_v']), norm_meta)
+                attr = task['target_attr']
+                if attr in norm.keys():
+                    print(f"WUT {llm_task} \n\n {norm}")
+                if attr not in by_attr_count.keys():
+                    by_attr_count[attr] = 1
+                else:
+                    by_attr_count[attr] += 1
     print(f"scan took: {(time()-start):.2f}")
     print(by_attr_count)
-        
+    for norm in file_db.all(norm_meta):
+        if norm != {}:
+            ext_id = int(norm['ext_id'])
+            if ext_id >= 323102 and ext_id <= 323151:
+                file_db.delete(norm)
 
 
 if __name__ == '__main__':

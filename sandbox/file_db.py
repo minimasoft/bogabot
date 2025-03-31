@@ -112,12 +112,22 @@ class FileDB():
 
     def _read_part(self, part_path: Path) -> dict:
         with self._open(part_path, 'rt', encoding=self.encoding) as fp:
-            return json.load(fp)
+            try:
+                return json.load(fp)
+            except Exception as e:
+                print(f"error at _read_part({part_path})")
+                raise e
 
 
     def _write_part(self, part_path: Path, obj: dict):
-        with self._open(part_path, 'wt', encoding=self.encoding) as fp:
-            json.dump(obj, fp, ensure_ascii=False)
+        try:
+            with self._open(part_path, 'wt', encoding=self.encoding) as fp:
+                json.dump(obj, fp, ensure_ascii=False)
+        except Exception as e:
+            print(f"error at _write_part({part_path})")
+            part_path.unlink()
+            raise e
+
 
     def _new_part_name(self):
         return f"{time_ns()}.jgz"
