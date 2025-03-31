@@ -89,9 +89,10 @@ def __main__():
     running = True
     while running:
         for target_attr in attr_list:
-            for llm_task in filter(lambda t: target_attr == t['target_attr'], db.all(task_type)):
+            for llm_task in sorted(filter(lambda t: target_attr == t['target_attr'], db.all(task_type)),key=lambda t: int(t['target_key_v']),reverse=True):
                 if 'start' in llm_task:
                     continue
+                print(llm_task['target_key_v'])
                 target_obj = db.read(llm_task['target_key_v'], norm_meta)
                 assert target_obj != {}
                 if llm_task['target_attr'] in target_obj.keys():
@@ -99,7 +100,6 @@ def __main__():
                     continue
                 if len(llm_task['prompt']) > int(worker_config['num_ctx'])*3.5:
                     print(f"Context too big for this worker: {len(llm_task['prompt'])}")
-                    continue
                 # rate limit
                 while time_ns() < (last_start+nspr):
                     sleep(0.1)

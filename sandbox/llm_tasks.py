@@ -4,6 +4,7 @@ from helpers import load_json_gz
 from pathlib import Path
 from bs4 import BeautifulSoup
 from global_config import gconf
+from file_db import FileDBRecord
 import json
 import gzip
 
@@ -88,15 +89,15 @@ class LLMTask():
             raise BadObjectType
         return self._select(obj)
 
-    def generate(self, obj: dict, meta: dict) -> dict:
-        return {
+    def generate(self, obj: dict, meta: dict) -> FileDBRecord:
+        return FileDBRecord(gconf("LLM_TASK_META"), {
             'task_key': f"{meta['type']}[{obj[meta['key']]}].{self.obj_attr}",
             'prompt': self._query(obj),
             'target_type': meta['type'],
             'target_key': meta['key'],
             'target_key_v': obj[meta['key']],
             'target_attr': self.obj_attr,
-        }
+        })
 
     def post_process(self, llm_output:str, obj: dict) -> dict:
         obj[self.obj_attr] = self._filter(llm_output)

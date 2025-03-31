@@ -10,10 +10,11 @@ from pathlib import Path
 from file_db import FileDB, FileDBMeta
 from global_config import gconf
 from llm_tasks import get_llm_task_map, NotEnoughData
+from time import time
 
 
 def main():
-    last_id = 3419000
+    last_id = 3119000
     max_id = 322950
 
     llm_task_map = get_llm_task_map()
@@ -22,21 +23,21 @@ def main():
         gconf("FILEDB_PATH"),
         gconf("FILEDB_SALT"),
     )
+
     norm_meta = gconf("NORM_META")
     llm_task_meta = gconf("LLM_TASK_META")
     current_id = last_id 
+    # Compress db, no need for historic changes now
+    #print("compressing db")
+    #start = time()
+    #file_db.compress(norm_meta)
+    #file_db.compress(llm_task_meta)
+    #print(f"done in {time()-start:.3f}s")
+
     while current_id < max_id:
         print(current_id)
         norm = file_db.read(str(current_id), norm_meta)
         if norm != {}:
-            dirty = False
-            if 'law_ref' in norm:
-                if len(norm['law_ref']) > 0:
-                    if isinstance(norm['law_ref'][0], str):
-                        norm.pop('law_ref')
-                        dirty = True
-            if dirty:
-                file_db.write(norm, norm_meta)
             norm_map = llm_task_map['norm']
             for attr in norm_map.keys():
                 try:
@@ -47,13 +48,17 @@ def main():
                             if llm_task_prev != {}:
                                 print("nothing")
                             else:
-                                file_db.write(llm_task, llm_task_meta)
+                                file_db.write(llm_task)
                 except NotEnoughData:
                     pass
         current_id = current_id + 1
-    all_tasks = file_db.all(llm_task_meta.obj_type_s)
-    by_attr_count = {}
+    start = time()
+    all_tasks = file_db.all(llm_task_meta)
+    by_attr_count = {
+        '_scanned': 0
+    }
     for task in all_tasks:
+        by_attr_count['_scanned'] += 1
         if 'start' not in task:
             norm = file_db.read(str(task['target_key_v']), norm_meta)
             attr = task['target_attr']
@@ -63,7 +68,7 @@ def main():
                 by_attr_count[attr] = 1
             else:
                 by_attr_count[attr] += 1
-
+    print(f"scan took: {(time()-start):.2f}")
     print(by_attr_count)
         
 

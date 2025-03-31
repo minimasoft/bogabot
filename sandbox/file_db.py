@@ -13,7 +13,7 @@ from contextlib import contextmanager
 from hashlib import sha256
 from hmac import HMAC
 from pathlib import Path
-from time import sleep, time_ns
+from time import sleep, time_ns, time
 from traceback import print_exc
 from os import getpid
 
@@ -29,6 +29,18 @@ class FileDBMeta():
             'key': self.obj_key_field_s,
         }
 
+class FileDBRecord(dict):
+    def __init__(self, meta: FileDBMeta, *args, **kwargs):
+        super(FileDBRecord,self).__init__(*args, **kwargs)
+        self._extra = {}
+        self._meta = meta
+
+    def e(self) -> dict:
+        return self._extra
+
+    def m(self) -> FileDBMeta:
+        return self._meta
+
 
 class FileDBKeyEncoder():
     def __init__(self, salt_s: str, encoding: str='utf-8'):
@@ -43,6 +55,7 @@ class FileDBKeyEncoder():
                 sha256
                 ).digest()
             ).decode(self.encoding)
+
 
 class FileDB():
     def __init__(self, base_path: Path, salt_s: str, encoding='utf-8', tree_depth: int=3):
@@ -60,15 +73,19 @@ class FileDB():
         path.mkdir(parents=True, exist_ok=True)
         return path
 
+    class Locked(Exception):
+        pass
+
     @contextmanager
     def _lock(self, obj_path: Path, wait: bool=True):
+        # TODO: this is not that good but it works most of the time
         lock_path = obj_path / ".lock"
         lock_success = False
         wait_n = 0
         while lock_success == False:
             while lock_path.exists():
                 if wait == False:
-                    return False
+                    raise FileDB.Locked
                 wait_n = wait_n + 1
                 sleep(0.001)  # async-io some day
                 if wait_n > 1000:
@@ -83,6 +100,7 @@ class FileDB():
                     yield lock_fp
             finally:
                 lock_path.unlink()
+
 
     def _all_locks(self):
         expr = "*/*"
@@ -107,14 +125,14 @@ class FileDB():
     def _new_part_name_v2(self):
         return f"{time_ns()}.json.gz"
 
-    def _direct_read(self, obj_path: Path) -> dict:
-        obj = dict()
-        #V1 format
-        for data_part_path in sorted(obj_path.glob('*.jgz')):
-            obj.update(self._read_part(data_part_path))
+    def _direct_read(self, obj_path: Path, meta: FileDBMeta) -> FileDBRecord:
+        obj = FileDBRecord(meta=meta)
+        ctime = 0
 
-        #V2 format
         for data_part_path in sorted(obj_path.glob('*.json.gz')):
+            p_ctime = data_part_path.stat().st_ctime
+            if p_ctime > ctime:
+                ctime = p_ctime
             record = self._read_part(data_part_path)
             if 'del' in record:
                 for key in record['del']:
@@ -122,23 +140,26 @@ class FileDB():
                         obj.pop(key)
             if 'set' in record:
                 obj.update(record['set'])
+        obj.e()['time'] = ctime
         return obj
 
 
-    def read(self, key_s: str, meta: FileDBMeta) -> dict:
+    def read(self, key_s: str, meta: FileDBMeta) -> FileDBRecord:
         b58key_s = self.key_enc.digest_s(key_s)
         obj_path = self._obj_path(meta.obj_type_s, b58key_s)
-        return self._direct_read(obj_path)
+        obj = self._direct_read(obj_path, meta)
+        return obj
 
     class NoOverwrite(Exception):
         pass
 
-    def write(self, obj: dict, meta: FileDBMeta, overwrite: bool=True):
-        if obj == {}: # TODO: maybe review this, found a lot of '{}' json files
+    def write(self, obj: FileDBRecord, overwrite: bool=True):
+        meta = obj.m()
+        if obj == {}:
             raise Exception("No empty objects")
         b58key_s = self.key_enc.digest_s(obj[meta.obj_key_field_s])
         obj_path = self._obj_path(meta.obj_type_s, b58key_s)
-        with self._lock(obj_path):
+        with self._lock(obj_path) as l:
             current_obj = self.read(obj[meta.obj_key_field_s], meta)
             new_data = {}
             old_data = {}
@@ -151,7 +172,7 @@ class FileDB():
                     new_data[key] = obj[key]
                     old_data[key] = current_obj[key]
             del_keys = [ key for key in current_obj.keys() - obj.keys() ]
-            record = {
+            record = { # TODO: maybe deprecate in favor of file ctime
                 't': str(time_ns())
             }
             if len(del_keys) > 0:
@@ -162,8 +183,11 @@ class FileDB():
             # TODO: hooks
             new_part_path = obj_path / self._new_part_name_v2()
             self._write_part(new_part_path, record)
+            obj.e()['time'] = time()
     
-    def delete(self, obj: dict, meta: FileDBMeta):
+
+    def delete(self, obj: FileDBRecord):
+        meta = obj.m()
         b58key_s = self.key_enc.digest_s(obj[meta.obj_key_field_s])
         obj_path = self._obj_path(meta.obj_type_s, b58key_s)
         shutil.rmtree(obj_path)
@@ -172,17 +196,26 @@ class FileDB():
     def all_types(self):
         return [type_path.name for type_path in self.base_path.glob('*')]
 
-    def all(self, obj_type_s: str):
-        type_path = self.base_path / obj_type_s
+    def all(self, meta: FileDBMeta) -> FileDBRecord:
+        type_path = self.base_path / meta.obj_type_s
         expr = "*"
         for x in range(1, self.tree_depth + 1):
             expr += "/*"
         for obj_path in type_path.glob(expr):
-            data = self._direct_read(obj_path)
-            if data == {}: # TODO: remove this cleanup
-                shutil.rmtree(obj_path)
-            else:
-                yield self._direct_read(obj_path)
+            data = self._direct_read(obj_path, meta)
+            yield data
+
+
+    def compress(self, meta: FileDBMeta):
+        type_path = self.base_path / meta.obj_type_s
+        expr = "*"
+        for x in range(1, self.tree_depth + 1):
+            expr += "/*"
+        for obj_path in type_path.glob(expr):
+            data = self._direct_read(obj_path, meta)
+            shutil.rmtree(obj_path)
+            if data != {}:
+                self.write(data)
 
 
 def __test__filedb__():
@@ -192,22 +225,22 @@ def __test__filedb__():
 
     db = FileDB(test_path, "db_salt")
     meta = FileDBMeta("test", "1")
-    a = {"1": '1', "2": 2}
-    b = {"1": '2', "2": 1}
-    c = {"1": '1', "2": 4}
-    db.write(a, meta)
-    db.write(b, meta)
-    db.write(c, meta)
-    d = {"1": '2', "2": 4}
+    a = FileDBRecord(meta, {"1": '1', "2": 2})
+    b = FileDBRecord(meta, {"1": '2', "2": 1})
+    c = FileDBRecord(meta, {"1": '1', "2": 4})
+    db.write(a)
+    db.write(b)
+    db.write(c)
+    d = FileDBRecord(meta, {"1": '2', "2": 4})
     try:
-        db.write(d, meta, overwrite=False)
+        db.write(d, overwrite=False)
         print("overwrite test error")
     except FileDB.NoOverwrite as e:
         print("overwrite test pass")
     print(db.read('1',meta))
     print(db.read('2',meta))
-    b = {"1": '2'}
-    db.write(b, meta)
+    b = FileDBRecord(meta, {"1": '2'})
+    db.write(b)
     print(f"{db.read('2',meta)} == {b} ?")
     assert db.read('2',meta) == b
 

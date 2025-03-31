@@ -10,12 +10,12 @@ from global_config import gconf
 from file_db import FileDB, FileDBMeta
 
 
-def check_dead_tasks(db, task_meta: dict, timeout_s: float=300.0):
+def check_dead_tasks(db, task_meta: FileDBMeta, timeout_s: float=50.0):
     unresponsive = 0
     processing = 0
     pending = 0
     completed = 0
-    for task in db.all(task_meta.d()['type']):
+    for task in db.all(task_meta):
         if 'start' in task and 'end' not in task:
             start = int(task['start'])
             elapsed_s = (time_ns() - int(task['start']))/10.0**9
@@ -25,7 +25,7 @@ def check_dead_tasks(db, task_meta: dict, timeout_s: float=300.0):
                     f"'{task['target_type']}[{task['target_key_v']}].{task['target_attr']}'" +\
                         f" task dead for {elapsed_s/60:.2f} minutes will retry.")
                 task.pop('start')
-                db.write(task, task_meta)
+                db.write(task)
             else:
                 processing = processing + 1
         elif 'start' in task and 'end' in task:
@@ -52,8 +52,8 @@ def main(argv: list) -> int:
     while running:
         print(f"[{ctime()}]: Watching from pid:{os.getpid()}...")
         check_dead_tasks(db, llm_task_meta)
-        check_locks(db)
-        sleep(3.14)
+        #check_locks(db)
+        sleep(3.14*3)
     return 0
 
 
