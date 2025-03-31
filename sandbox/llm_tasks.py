@@ -140,22 +140,22 @@ class TagsTask(LLMTask):
 
     def _query(self, norm: dict) -> str:
         prompt = """Clasifica la norma con los siguientes tags:
-- #designacion : solo se utiliza para nombramientos, designaciones transitorias y promociones de una persona en particular
-- #renuncia : solo se utiliza para renuncias.
+- #designacion : solo se utiliza para nombramientos y designaciones transitorias de una persona en particular a un cargo.
+- #renuncia : solo se utiliza para renuncias a un cargo de una persona en particular.
+- #cese: solo se utiliza para cuando se dispone el cese de una persona en un cargo.
+- #inscripcion: solo se utiliza cuando se inscribe a una persona en una matricula profesional.
 - #multa : solo se utiliza para penalizaciones economicas o multas aplicadas a personas o empresas especificas.
 - #laboral : solo se utiliza para normas y resoluciones que actualizan el salario o las reglas de trabajo para un gremio o grupo de trabajadores.
 - #anses : solo se utiliza para normas que reglamentan o modifican temas relacionados con la seguridad social, el anses o las pensiones.
-- #tarifas : solo se utiliza para normas que actualizan, o regulan tarifas de servicios.
-- #administrativo : solo se utiliza para cuando se acepta o rechaza un recurso jerarquico de un expediente administrativo presentado por un una persona en particular. No usar para trámites administrativos ministeriales o de entes de control.
+- #tarifas : solo se utiliza para normas que actualizan, o regulan tarifas de servicios y bienes de consumo.
+- #recurso_administrativo :  solo se utiliza cuando se acepta o rechaza un recurso presentado por una persona en particular.
 - #cierre: solo se utiliza para cuando se trata de cerrar alguna entidad u organismo.
 - #subasta : solo se utiliza para cuando se trata de una subasta.
 - #edicto: solo se utiliza para edictos.
-- #presidencial : solo se utiliza cuando firma el presidente Milei.
+- #presidencial : solo se utiliza cuando firma el presidente Milei, no cuando firma su hermana Karina.
 
-La respuesta debe ser una lista en formato JSON de los de tags acompañados de su probabilidad de 1.0 (seguro), 0.8 (casi seguro), 0.6 (probable), 0.3 (poco probable) a 0.0 (inexistente), sin markdown, si no hay tags la respuesta es [] (la lista vacia) y para #anses 0.8 y #presidencial 1.0 la respuesta es:
-[["#anses", 0.8],["#presidencial", 1.0]]
-
-Nota que la respuesta es sin indicaciones de formato json en markdown. Debe ser solo el json.
+La respuesta debe ser una lista en formato JSON de los de tags, sin markdown, si no hay tags la respuesta es [] (la lista vacia) y para #anses y #presidencial la respuesta es:
+["#anses", "#presidencial"]
 
 Norma a clasificar:
 ```
@@ -166,9 +166,7 @@ Norma a clasificar:
 
     def _filter(self, llm_output: str) -> list:
         json_value = json_llm(llm_output.replace('json','').replace('```',''))
-        tag_limit = 0.5 # Ignore low confidence tags
-        useful_tags = [ tag[0] for tag in json_value if float(tag[1]) > tag_limit ]
-        return useful_tags
+        return json_value
 
 
 class AppointmentTask(LLMTask):
@@ -209,15 +207,15 @@ class ResignTask(LLMTask):
     def _select(self, norm: dict) -> bool:
         if 'tags' not in norm:
             raise NotEnoughData
-        return '#renuncia' in norm['tags']
+        return '#renuncia' in norm['tags'] or '#cese' in norm['tags']
 
     def _query(self, norm: dict) -> str:
-        prompt = """Crear una lista en formato JSON (sin markdown) de las personas que renuncian a un cargo con los siguientes campos:
+        prompt = """Crear una lista en formato JSON (sin markdown) de las personas que renuncian o cesan un cargo con los siguientes campos:
 - 'name': nombre completo de la persona que renuncia.
 - 'gov_id': número de DNI or CUIT de la persona que renuncia.
 - 'gov_section': el departamento, ministerio o sección del gobierno.
-- 'position': cargo al que la persona renuncia.
-- 'position_end': fecha en la que la persona renuncia al cargo, el formato debe ser YYYY-MM-DD.
+- 'position': cargo al que la persona renuncia o cesa.
+- 'position_end': fecha en la que la persona renuncia o cesa el cargo, el formato debe ser YYYY-MM-DD.
 
 Si no hay la respuesta es una lista vacía '[]', si hay elementos directamente la lista.
 
@@ -238,7 +236,7 @@ class LawRefTask(LLMTask):
     def _select(self, norm: dict) -> bool:
         if 'tags' not in norm:
             raise NotEnoughData
-        tag_filter = all(tag not in ['#designacion','#renuncia', '#edicto'] for tag in norm['tags'])
+        tag_filter = all(tag not in ['#designacion','#renuncia', '#edicto', '#recurso_administrativo'] for tag in norm['tags'])
         return tag_filter
 
     def _query(self, norm: dict) -> str:
@@ -287,14 +285,13 @@ class DecreeRefTask(LLMTask):
     def _select(self, norm: dict) -> bool:
         if 'tags' not in norm:
             raise NotEnoughData
-        tag_filter = all(tag not in ['#designacion','#renuncia', '#edicto'] for tag in norm['tags'])
+        tag_filter = all(tag not in ['#designacion','#renuncia', '#edicto', '#recurso_administrativo'] for tag in norm['tags'])
         return tag_filter
 
     def _query(self, norm: dict) -> str:
-        prompt = """Crear una lista en JSON de decretos mencionados:
-Reglas:
+        prompt = """Crear una lista en JSON de decretos mencionados con las siguientes reglas:
 - El formato es '123/2024' donde '123' es el numero de decreto y '2024' el año. 
-- El año puede estar con 2 dígitos o 4 dígitos, conservar el formato con el que está escrito.
+- El año puede estar con 2 dígitos o 4 dígitos: conservar el formato con el que está escrito.
 - No incluir leyes, resoluciones ni otro tipo de normas.
 - Sin comentarios.
 - Si no se mencionan decretos la respuesta es una lista vacia: '[]'.
@@ -304,7 +301,7 @@ Reglas:
 Por ejemplo si se mencionan los decretos Decreto N° 1023/01 y Decreto N° 1382 de fecha 9 de agosto de 2012:
 ["1023/01", "1382/2012"]
 
-Norma:
+Norma a analizar:
 ```
 """
         prompt += norm_text(norm) + "\n```\n"
@@ -344,7 +341,7 @@ class ResolutionRefTask(LLMTask):
     def _select(self, norm: dict) -> bool:
         if 'tags' not in norm:
             raise NotEnoughData
-        tag_filter = all(tag not in ['#designacion','#renuncia', '#edicto'] for tag in norm['tags'])
+        tag_filter = all(tag not in ['#designacion','#renuncia', '#edicto', '#recurso_administrativo'] for tag in norm['tags'])
         return tag_filter
     
     def _query(self, norm: dict) -> str:
@@ -384,7 +381,7 @@ class AnalysisTask(LLMTask):
             raise NotEnoughData
         if 'decree_ref' not in norm:
             raise NotEnoughData
-        tag_filter = all(tag not in ['#edicto','#designacion','#renuncia','#multa'] for tag in norm['tags'])
+        tag_filter = all(tag not in ['#edicto','#designacion','#cese','#inscripcion','#renuncia','#multa', '#recurso_administrativo'] for tag in norm['tags'])
         subjects_out = [
             "BANCO CENTRAL",
             "BANCO DE LA NACI",
