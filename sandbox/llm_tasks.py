@@ -117,11 +117,11 @@ class BriefTask(LLMTask):
     def _query(self, norm: dict) -> str:
         prompt = """
 Crear un resumen bajo las siguientes consignas:
-- Siempre menciona a todos los firmantes por apellido.
+- Menciona a todos los firmantes por apellido.
 - Si es una designacion de personal solo menciona a las personas involucradas y sus roles.
 - Si hay datos tabulados solo menciona su existencia. 
 - Solo escribe el resumen, no ofrezcas mas ayuda, la respuesta es final.
-- El resumen debe tener como mucho 500 caracteres.
+- El resumen debe tener máximo 500 caracteres.
 - No mencionar que es un resumen.
 
 Norma a resumir:
@@ -176,7 +176,7 @@ class AppointmentTask(LLMTask):
     def _select(self, norm: dict) -> bool:
         if 'tags' not in norm:
             raise NotEnoughData
-        return '#designacion' in norm['tags']
+        return norm['official_id'] != "" and '#designacion' in norm['tags']
 
     def _query(self, norm: dict) -> str:
         prompt = """Crear una lista en formato JSON (sin markdown)  de las personas que fueron designadas a un cargo con los siguientes campos:
@@ -207,7 +207,7 @@ class ResignTask(LLMTask):
     def _select(self, norm: dict) -> bool:
         if 'tags' not in norm:
             raise NotEnoughData
-        return '#renuncia' in norm['tags'] or '#cese' in norm['tags']
+        return norm['official_id'] != "" and ('#renuncia' in norm['tags'] or '#cese' in norm['tags'])
 
     def _query(self, norm: dict) -> str:
         prompt = """Crear una lista en formato JSON (sin markdown) de las personas que renuncian o cesan un cargo con los siguientes campos:
@@ -236,8 +236,8 @@ class LawRefTask(LLMTask):
     def _select(self, norm: dict) -> bool:
         if 'tags' not in norm:
             raise NotEnoughData
-        tag_filter = all(tag not in ['#designacion','#renuncia', '#edicto', '#recurso_administrativo'] for tag in norm['tags'])
-        return tag_filter
+        tag_filter = all(tag not in ['#designacion','#renuncia', '#cese', '#inscripcion', '#edicto', '#recurso_administrativo'] for tag in norm['tags'])
+        return norm['official_id'] != "" and tag_filter
 
     def _query(self, norm: dict) -> str:
         prompt = """Crear una lista en formato JSON de numeros de ley (sin artículos).
@@ -285,8 +285,8 @@ class DecreeRefTask(LLMTask):
     def _select(self, norm: dict) -> bool:
         if 'tags' not in norm:
             raise NotEnoughData
-        tag_filter = all(tag not in ['#designacion','#renuncia', '#edicto', '#recurso_administrativo'] for tag in norm['tags'])
-        return tag_filter
+        tag_filter = all(tag not in ['#designacion','#renuncia', '#cese', '#inscripcion', '#edicto', '#recurso_administrativo'] for tag in norm['tags'])
+        return norm['official_id'] != "" and tag_filter
 
     def _query(self, norm: dict) -> str:
         prompt = """Crear una lista en JSON de decretos mencionados con las siguientes reglas:
@@ -341,8 +341,8 @@ class ResolutionRefTask(LLMTask):
     def _select(self, norm: dict) -> bool:
         if 'tags' not in norm:
             raise NotEnoughData
-        tag_filter = all(tag not in ['#designacion','#renuncia', '#edicto', '#recurso_administrativo'] for tag in norm['tags'])
-        return tag_filter
+        tag_filter = all(tag not in ['#designacion','#renuncia', '#cese', '#edicto', '#recurso_administrativo'] for tag in norm['tags'])
+        return norm['official_id'] != "" and tag_filter
     
     def _query(self, norm: dict) -> str:
         prompt = """Crear una lista en JSON de resoluciones mencionadas:
