@@ -259,10 +259,12 @@ Norma a analizar:
         return prompt
 
     def _filter(self, llm_output: str) -> list:
-        results = []
+        results = {}
         for value in json_llm(llm_output.replace('```','').replace('json','').replace("'",'"')):
             result = {}
             clean = "".join(filter(lambda c: c.isdigit(), str(value)))
+            if clean in results:
+                continue
             result['llm'] = value
             result['ref'] = clean
             infolegs = []
@@ -273,9 +275,8 @@ Norma a analizar:
                         infolegs.append(str(infoleg_law['id']))
                 if len(infolegs) > 0:
                     result['infolegs'] = infolegs 
-            results.append(result)
-        print(results) # debug
-        return results
+            results[clean] = result
+        return results.values()
 
 
 class DecreeRefTask(LLMTask):
@@ -308,11 +309,13 @@ Norma a analizar:
         return prompt
 
     def _filter(self, llm_output: str) -> list:
-        results = []
+        results = {}
         for value in json_llm(llm_output.replace('```','').replace('json','').replace("'",'"')):
             result = {}
             clean = "".join(filter(lambda c: c.isdigit() or c=='/', str(value)))
             result['llm'] = value
+            if clean in results:
+                continue
             infolegs = []
             if '/' in clean:
                 dec_n, dec_y = clean.split('/')
@@ -329,9 +332,8 @@ Norma a analizar:
                             infolegs.append(str(infoleg_dec['id']))
                 if len(infolegs) > 0:
                     result['infolegs'] = infolegs 
-            results.append(result)
-        print(results) # debug
-        return results
+            results[clean] = result
+        return results.values()
 
 
 class ResolutionRefTask(LLMTask):
