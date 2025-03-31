@@ -196,17 +196,21 @@ class FileDB():
     def all_types(self):
         return [type_path.name for type_path in self.base_path.glob('*')]
 
-    def all(self, meta: FileDBMeta) -> FileDBRecord:
+
+    def all(self, meta: FileDBMeta, since_s: float=0) -> FileDBRecord:
         type_path = self.base_path / meta.obj_type_s
         expr = "*"
         for x in range(1, self.tree_depth + 1):
             expr += "/*"
         for obj_path in type_path.glob(expr):
-            data = self._direct_read(obj_path, meta)
-            yield data
+            if obj_path.stat().st_mtime >= since_s:
+                data = self._direct_read(obj_path, meta)
+                yield data
 
 
-    def compress(self, meta: FileDBMeta):
+    def compress(self, meta: FileDBMeta, sure: bool=False):
+        # TODO: make this safer by moving stuff
+        assert sure == True
         type_path = self.base_path / meta.obj_type_s
         expr = "*"
         for x in range(1, self.tree_depth + 1):

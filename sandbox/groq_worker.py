@@ -24,6 +24,7 @@ worker_config = load_json(worker_config_path)
 #num_ctx = int
 #rpm = int
 #rpd = int
+wait_cycle_s = 5.0
 
 MODEL="qwen-qwq-32b"
 
@@ -87,34 +88,42 @@ def __main__():
     # 60 seconds / requests_per_minute in ns + 1 second
     nspr = (60*10**9) / int(worker_config['rpm']) + 10**9
     running = True
+    last_check_s = 0
     while running:
+        all_tasks = sorted(filter(lambda t: 'start' not in t and t['target_attr'] in attr_list, db.all(llm_task_meta, last_check_s)), key=lambda t: int(t['target_key_v']), reverse=True)
         for target_attr in attr_list:
-            for llm_task in sorted(filter(lambda t: target_attr == t['target_attr'], db.all(task_type)),key=lambda t: int(t['target_key_v']),reverse=True):
-                if 'start' in llm_task:
-                    continue
-                print(llm_task['target_key_v'])
+            for llm_task in filter(lambda t: target_attr == t['target_attr'], all_tasks):
+                print(f"Checking task for {llm_task['target_key_v']}")
+                if llm_task.e()['time'] > last_check_s:
+                    last_check_s = llm_task.e()['time']
+
                 target_obj = db.read(llm_task['target_key_v'], norm_meta)
                 assert target_obj != {}
-                if llm_task['target_attr'] in target_obj.keys():
+
+                if llm_task['target_attr'] in target_obj:
                     print("duplicated task? TODO: implement force")
                     continue
                 if len(llm_task['prompt']) > int(worker_config['num_ctx'])*3.5:
                     print(f"Context too big for this worker: {len(llm_task['prompt'])}")
-                # rate limit
+                    continue
+
                 while time_ns() < (last_start+nspr):
                     sleep(0.1)
-
                 last_start = time_ns()
                 llm_task['start'] = str(last_start)
                 try:
-                    db.write(llm_task, llm_task_meta, overwrite=False)
+                    db.write(llm_task, overwrite=False)
                 except FileDB.NoOverwrite:
                     continue
+
                 llm_output = query_deep(MODEL, llm_task['prompt'])
-                print(llm_output)
+                llm_task['end'] = str(time_ns())
                 llm_task['model'] = MODEL
                 llm_task['num_ctx'] = worker_config['num_ctx']
-                llm_task['end'] = str(time_ns())
+
+                print(f"llm_output from {MODEL}:\n{llm_output}")
+
+
                 try:
                     task_map[
                         llm_task['target_type']][
@@ -124,13 +133,16 @@ def __main__():
                     print("BADLLMDATA")
                     # TODO: maybe tip next run to change the seed?
                     continue 
-                db.write(target_obj, norm_meta)
+
+                db.write(target_obj)
                 # only write llm_task with 'end' after storing the result
-                db.write(llm_task, llm_task_meta)
+                db.write(llm_task)
                 for new_task in _hook_update_norm(target_obj, norm_meta.d(), task_map['norm']):
-                    db.write(new_task, llm_task_meta)
-        print("Task cycle done. Will re-scan in 1 second...")
-        sleep(0.99)
+                    db.write(new_task)
+                # rate_limit if needed
+
+        print(f"Task cycle done. Will re-scan in {wait_cycle_s:.2f} seconds...")
+        sleep(wait_cycle_s)
 
 
 if __name__ == '__main__':

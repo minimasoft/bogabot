@@ -30,8 +30,8 @@ def main():
     # Compress db, no need for historic changes now
     #print("compressing db")
     #start = time()
-    #file_db.compress(norm_meta)
-    #file_db.compress(llm_task_meta)
+    #file_db.compress(norm_meta, sure=True)
+    #file_db.compress(llm_task_meta, sure=True)
     #print(f"done in {time()-start:.3f}s")
 
     while current_id < max_id:

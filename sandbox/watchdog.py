@@ -5,17 +5,21 @@
 import sys
 import os
 from pathlib import Path
-from time import time_ns, sleep, ctime
+from time import time_ns, sleep, ctime, time
 from global_config import gconf
 from file_db import FileDB, FileDBMeta
 
 
-def check_dead_tasks(db, task_meta: FileDBMeta, timeout_s: float=50.0):
+def check_dead_tasks(db, task_meta: FileDBMeta, since_s: float=0.0, timeout_s: float=50.0):
     unresponsive = 0
     processing = 0
-    pending = 0
-    completed = 0
-    for task in db.all(task_meta):
+    newest_task_s = since_s - timeout_s
+    start_s = time()
+    all_tasks = db.all(task_meta, newest_task_s)
+    for task in all_tasks:
+        if task.e()['time'] > newest_task_s:
+            newest_task_s = task.e()['time']
+
         if 'start' in task and 'end' not in task:
             start = int(task['start'])
             elapsed_s = (time_ns() - int(task['start']))/10.0**9
@@ -28,12 +32,9 @@ def check_dead_tasks(db, task_meta: FileDBMeta, timeout_s: float=50.0):
                 db.write(task)
             else:
                 processing = processing + 1
-        elif 'start' in task and 'end' in task:
-            completed = completed + 1
-        else:
-            pending = pending + 1
-    print(f"Found {unresponsive} unresponsive {task_meta.d()['type']}.")
-    print(f"{completed}/{pending}/{processing} completed/pending/processing {task_meta.d()['type']}.")
+
+    print(f"Found {unresponsive} unresponsive and {processing} processing {task_meta.d()['type']} in {(time()-start_s):.3f}s.")
+    return newest_task_s
 
 def check_locks(db):
     for lock_path in db._all_locks():
@@ -49,11 +50,12 @@ def main(argv: list) -> int:
     llm_task_meta = gconf("LLM_TASK_META")
     norm_meta = gconf("NORM_META")
     running = True
+    llm_task_check_time_s = 0
     while running:
         print(f"[{ctime()}]: Watching from pid:{os.getpid()}...")
-        check_dead_tasks(db, llm_task_meta)
+        llm_task_check_time_s = check_dead_tasks(db, llm_task_meta, since_s=llm_task_check_time_s)
         #check_locks(db)
-        sleep(3.14*3)
+        sleep(3.14)
     return 0
 
 
