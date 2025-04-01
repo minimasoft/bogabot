@@ -52,9 +52,13 @@ class BadObjectType(Exception):
     pass
 
 
+def normalize_llm_json(llm_output: str) -> str:
+    return llm_output.replace("'",'"').replace('```json','').replace('```','')
+
 def json_llm(llm_output: str) -> dict:
     try:
-        return json.loads(llm_output)
+        normal_output = normalize_llm_json(llm_output)
+        return json.loads(normal_output)
     except Exception as e:
         print(f"error at json decode {e}:\n{llm_output}\n{'-'*40}")
         # let's retry something else:
@@ -112,16 +116,18 @@ def dummy_selector(norm: dict) -> bool:
 
 class BriefTask(LLMTask):
     def __init__(self):
+        self.max_len = 500
+        self.tolerance = 1.2
         return super().__init__('norm', 'brief')
 
     def _query(self, norm: dict) -> str:
-        prompt = """
+        prompt = f"""
 Crear un resumen bajo las siguientes consignas:
 - Menciona a todos los firmantes por apellido.
 - Si es una designacion de personal solo menciona a las personas involucradas y sus roles.
 - Si hay datos tabulados solo menciona su existencia. 
 - Solo escribe el resumen, no ofrezcas mas ayuda, la respuesta es final.
-- El resumen debe tener máximo 500 caracteres.
+- El resumen debe tener máximo {self.max_len} caracteres.
 - No mencionar que es un resumen.
 
 Norma a resumir:
@@ -132,6 +138,12 @@ Norma a resumir:
         context = mapa_context
 
         return context + prompt
+    
+    def _filter(self, llm_output:str) -> str:
+        if len(llm_output) > self.max_len*self.tolerance:
+            print("too long!")
+            raise BadLLMData
+        return llm_output
 
 
 class TagsTask(LLMTask):
@@ -165,7 +177,7 @@ Norma a clasificar:
         return prompt
 
     def _filter(self, llm_output: str) -> list:
-        json_value = json_llm(llm_output.replace('json','').replace('```',''))
+        json_value = json_llm(llm_output)
         return json_value
 
 
@@ -196,7 +208,7 @@ Norma:
         return prompt
 
     def _filter(self, llm_output: str) -> list:
-        json_value = json_llm(llm_output.replace('json','').replace('```',''))
+        json_value = json_llm(llm_output)
         return json_value
 
 
@@ -260,7 +272,7 @@ Norma a analizar:
 
     def _filter(self, llm_output: str) -> list:
         results = {}
-        for value in json_llm(llm_output.replace('```','').replace('json','').replace("'",'"')):
+        for value in json_llm(llm_output):
             result = {}
             clean = "".join(filter(lambda c: c.isdigit(), str(value)))
             if clean in results:
@@ -310,7 +322,7 @@ Norma a analizar:
 
     def _filter(self, llm_output: str) -> list:
         results = {}
-        for value in json_llm(llm_output.replace('```','').replace('json','').replace("'",'"')):
+        for value in json_llm(llm_output):
             result = {}
             clean = "".join(filter(lambda c: c.isdigit() or c=='/', str(value)))
             result['llm'] = value
