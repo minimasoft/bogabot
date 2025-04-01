@@ -93,7 +93,7 @@ def scan_bo_gob_ar_section_one(current_id, meta):
 
 
 def main():
-    last_id = 323186 # helper
+    last_id = 323270 # helper
     if len(sys.argv) == 2:
         last_id = int(sys.argv[1])
 
@@ -110,13 +110,13 @@ def main():
     running = True
     while running:
         # don't scan too far
-        if (current_id - last_new_task) > 2:
+        if (current_id - last_new_task) > 102:
             if last_new_task > last_id:
                 print("my work here is done.")
                 sys.exit(0)
             print("too far... sleep and restart.")
             current_id = last_id
-            sleep(30) # don't hit it too hard
+            sleep(10) # don't hit it too hard
             continue
         # check if already loaded
         print(f"check: {current_id}")
@@ -130,7 +130,7 @@ def main():
                 last_new_task = current_id
                 file_db.write(norm)
             else:
-                current_id += 1
+                current_id += 100
                 continue
         if norm is not None:
             norm_map = llm_task_map['norm']
