@@ -48,6 +48,7 @@ while(curr_date <= today):
             if result_time < html_time:
                 print(f"Skip write, already up to date")
                 skip_write = True
+            skip_write = False
         if skip_write == False:
             print(f"Writing {len(results)} norms...")
             with open(html_path, 'w') as html_o:
@@ -75,6 +76,8 @@ border: 1px solid black;
 border-collapse: collapse;
 width: 100%;
 max-width: 1000px;
+margin-left: auto;
+margin-right: auto;
 }
 
 td {
