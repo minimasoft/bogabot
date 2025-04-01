@@ -1,7 +1,10 @@
+- Fix big analysis context
+- Show/hide by tags in page ideally with just CSS
+- Add designations gnocchi
+- Clean-up and organize fetch and cache of infoleg of law & decree
 - Add db hooks
 - Add generic worker code (process signal processing, auto-update)
 - Add db index
-- Clean-up and organize fetch and cache of infoleg of law & decree
 - Add support for resolution linking with fetch & cleanup (in progress)
 - Add support for constitution context and norm analysis (when I have more gpus or moneyz)
 - Add cross-reference for recent decrees with ext_id
