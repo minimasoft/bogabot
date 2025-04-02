@@ -100,11 +100,9 @@ def __main__():
                 target_obj = db.read(llm_task['target_key_v'], norm_meta)
                 assert target_obj != {}
 
+
                 if llm_task['target_attr'] in target_obj:
                     print("duplicated task? TODO: implement force")
-                    continue
-                if len(llm_task['prompt']) > int(worker_config['num_ctx'])*3.5:
-                    print(f"Context too big for this worker: {len(llm_task['prompt'])}")
                     continue
 
                 while time_ns() < (last_start+nspr):
@@ -116,13 +114,33 @@ def __main__():
                 except FileDB.NoOverwrite:
                     continue
 
-                llm_output = query_deep(MODEL, llm_task['prompt'])
+                #if len(prompt) > int(worker_config['num_ctx'])*3.5:
+                #    print(f"Context too big for this worker: {len(llm_task['prompt'])}")
+                #    continue
+
+                prompt = llm_task['prompt']
+                results = {}
+                if type(prompt) != str:
+                    print('='*80)
+                    print("processing map reduce analysis")
+                    print('-'*80)
+                    reducer = prompt.pop('reducer')
+                    reduce_context = ""
+                    for k in prompt.keys():
+                        reduce_context += query_deep(MODEL, prompt[k])
+                        reduce_context += "\n"
+                    reducer.replace('_reducer_', reduce_context)
+                    print(reducer)
+                    print('='*80)
+                    llm_output = query_deep(MODEL, reducer)
+                else:
+                    llm_output = query_deep(MODEL, prompt)
+
                 llm_task['end'] = str(time_ns())
                 llm_task['model'] = MODEL
                 llm_task['num_ctx'] = worker_config['num_ctx']
 
                 print(f"llm_output from {MODEL}:\n{llm_output}")
-
 
                 try:
                     task_map[
