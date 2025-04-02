@@ -78,11 +78,12 @@ class LLMTask():
     def __init__(self, obj_type: str, obj_attr: str):
         self.obj_type = obj_type
         self.obj_attr = obj_attr
+        self.multi_step = False
 
     def _select(self, obj: dict) -> bool:
         return True
 
-    def _query(self, obj: dict) -> str:
+    def _query(self, obj: dict) -> [str, dict]:
         raise NotImplementedError
 
     def _filter(self, llm_output:str) -> str:
@@ -101,6 +102,7 @@ class LLMTask():
             'target_key': meta['key'],
             'target_key_v': obj[meta['key']],
             'target_attr': self.obj_attr,
+            'multi_step': self.multi_step
         })
 
     def post_process(self, llm_output:str, obj: dict) -> dict:
@@ -419,27 +421,24 @@ class AnalysisTask(LLMTask):
                 for infoleg in ref['infolegs']:
                     infolegs.add(infoleg)
         print(f"trying to load: {list(infolegs)}")
-        full_context = []
+        all_contexts = {}
         for infoleg_id in infolegs:
             infoleg_file = Path(f"../data/infoleg_html/{infoleg_id[-1]}/{infoleg_id}.html")
             if infoleg_file.exists():
                 with open(infoleg_file, 'r', encoding='utf-8') as infoleg_html:
                     info_soup = BeautifulSoup(infoleg_html, 'html.parser')
-                    full_context.append(info_soup.text)
-        context_as_text = "A continuacion reglamentación de contexto, empieza en !CONTEXT_START y termina en !CONTEXT_END.\n\n!CONTEXT_START\n"
-        for context in full_context:
-            context_as_text += context
-            context_as_text += "\n\n"
-        context_as_text += "!CONTEXT_END\n"
-        prompt = """Explicar como la norma actual (a continuación entre !NORM_START y !NORM_END) afecta o impacta sobre las normas anteriores.
-En caso de modificar leyes anteriores explicar los beneficios afectados de la ley anterior.
-Mencionar derechos perdidos y posibles abusos con la nueva normativa.
-!NORM_START
-"""
-        prompt += norm_text(norm) + "\n!NORM_END\n"
-        result = context_as_text + prompt
-        print(f"Created mega context of: {len(result)}")
-        return result
+                    all_contexts[infoleg_id] = info_soup.text
+        prompts = {}
+        for context_id in all_contexts.keys():
+            prompts[context_id] = "A continuacion reglamentación de contexto, empieza en !CONTEXT_START y termina en !CONTEXT_END.\n"
+            prompts[context_id] += f"!CONTEXT_START\n{all_contexts[context_id]}\n!CONTEXT_END\n"
+            prompts[context_id] += "Enumerar en que puntos el siguiente decreto (entre !NORM_START y !NORM_END) afecta a la reglamentación de contexto, en caso de no afectarla aclarar por que se usa de contexto.\n"
+            prompts[context_id] += f"!NORM_START\n{norm_text(norm)}\n!NORM_END\n"
+        
+        prompts['reducer'] = "Estos son los puntos remarcados en un análisis de las normas de contexto:\n```\n_reducer_\n```\n"
+        prompts['reducer'] += f"Esta es la norma nueva:\n```{norm_text(norm)}\n```\n"
+        prompts['reducer'] += "Crear un análisis mostrando como la nueva norma afecta a todas las anteriores. Mencionar también derechos perdidos y posibles abusos con la nueva normativa."
+        return prompts
 
 
 def get_llm_task_map() -> dict:
