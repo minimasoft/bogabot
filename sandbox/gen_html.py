@@ -182,8 +182,8 @@ max-width: 1000px;
                         html_o.write(f"<details><summary><b><u>Análisis de bogabot</u></b></summary>{analysis}</details>\n")
                     html_o.write(f"<details><summary><b><u>Ver texto original</u></b></summary>{result['full_text']}</details>\n")
                     html_o.write(f"</details>\n</div>\n</td>\n</tr>\n")
-                html_o.write(f"<tr><td><div id=bonus_1 class=json_data><h2><a href='bo{year-2000}{month:02}{day:02}.personal.json'> Bonus 1: JSON designaciones y renuncias</a></h2><hr></div></td></tr>\n")
-                html_o.write(f"<tr><td><div id=bonus_2 class=json_data><h2><a href='bo{year-2000}{month:02}{day:02}.designa.csv'>Bonus 2: CSV designaciones</a></h2><hr></div></td></tr>\n")
+                html_o.write(f"<tr><td><h2><a href='bo{year-2000}{month:02}{day:02}.personal.json'> Bonus 1: JSON designaciones y renuncias</a></h2></td></tr>\n")
+                html_o.write(f"<tr><td><h2><a href='bo{year-2000}{month:02}{day:02}.designa.csv'>Bonus 2: CSV designaciones</a></h2></td></tr>\n")
                 html_o.write('\n</tbody></table></body></html>\n')
                 with open(json_path, 'wt', encoding='utf-8') as jf:
                     json.dump({
