@@ -127,9 +127,17 @@ def __main__():
                     reducer = prompt.pop('reducer')
                     reduce_context = ""
                     for k in prompt.keys():
-                        reduce_context += query_deep(MODEL, prompt[k])
-                        reduce_context += "\n"
-                    reducer.replace('_reducer_', reduce_context)
+                        n = len(prompt[k])
+                        print('v'*12)
+                        print(f" {n}")
+                        print('^'*12)
+                        if n > 400000:
+                            print("TODO: exta-big law... Can't crunch now. GRRRR")
+                            print(k)
+                        else:
+                            reduce_context += query_deep(MODEL, prompt[k])
+                            reduce_context += "\n"
+                    reducer = reducer.replace('_reducer_', reduce_context)
                     print(reducer)
                     print('='*80)
                     llm_output = query_deep(MODEL, reducer)
