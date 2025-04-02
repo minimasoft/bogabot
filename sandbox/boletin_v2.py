@@ -93,7 +93,7 @@ def scan_bo_gob_ar_section_one(current_id, meta):
 
 
 def main():
-    last_id = 323270 # helper
+    last_id = 323357 # helper
     if len(sys.argv) == 2:
         last_id = int(sys.argv[1])
 

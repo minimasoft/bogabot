@@ -48,7 +48,6 @@ while(curr_date <= today):
             if result_time < html_time:
                 print(f"Skip write, already up to date")
                 skip_write = True
-            skip_write = False
         if skip_write == False:
             print(f"Writing {len(results)} norms...")
             with open(html_path, 'w') as html_o:
@@ -111,7 +110,7 @@ max-width: 1000px;
 <table>
 <tbody>
 <tr><td>
-<a href='/bora/'><img src=bogabanner.png></img></a>
+<a href='/bora/'><img src=bannerv02.png></img></a>
 </td></tr>
 <tr><td>
 <h2>Agregado de la sección primera del bolet&iacute;n oficial fecha """)
