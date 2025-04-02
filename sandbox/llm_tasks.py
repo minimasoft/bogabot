@@ -429,15 +429,15 @@ class AnalysisTask(LLMTask):
                     info_soup = BeautifulSoup(infoleg_html, 'html.parser')
                     all_contexts[infoleg_id] = info_soup.text
         prompts = {}
+        official_id = norm['official_id'].split(' ')[0]
         for context_id in all_contexts.keys():
             prompts[context_id] = "A continuacion reglamentación de contexto, empieza en !CONTEXT_START y termina en !CONTEXT_END.\n"
             prompts[context_id] += f"!CONTEXT_START\n{all_contexts[context_id]}\n!CONTEXT_END\n"
-            prompts[context_id] += "Enumerar en que puntos el siguiente decreto (entre !NORM_START y !NORM_END) afecta a la reglamentación de contexto, en caso de no afectarla aclarar por que se usa de contexto.\n"
+            prompts[context_id] += f"Enumerar en que puntos el siguiente decreto ({official_id} entre !NORM_START y !NORM_END) afecta a la reglamentación de contexto, en caso de no afectarla aclarar por que se usa de contexto.\n"
             prompts[context_id] += f"!NORM_START\n{norm_text(norm)}\n!NORM_END\n"
-        
         prompts['reducer'] = "Estos son los puntos remarcados en un análisis de las normas de contexto:\n```\n_reducer_\n```\n"
-        prompts['reducer'] += f"Esta es la norma nueva:\n```{norm_text(norm)}\n```\n"
-        prompts['reducer'] += "Crear un análisis mostrando como la nueva norma afecta a todas las anteriores. Mencionar también derechos perdidos y posibles abusos con la nueva normativa."
+        prompts['reducer'] += f"Esta es la norma nueva ({official_id}):\n```{norm_text(norm)}\n```\n"
+        prompts['reducer'] += "Crear un análisis mostrando como la nueva norma afecta a todas las anteriores. Mencionar también derechos perdidos y posibles abusos con la nueva normativa. No incluir recomendaciones."
         return prompts
 
 

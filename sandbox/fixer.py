@@ -14,8 +14,8 @@ from time import time
 
 
 def main():
-    last_id = 3119000
-    max_id = 322950
+    last_id = 323270
+    max_id = 323370
 
     llm_task_map = get_llm_task_map()
 
@@ -61,7 +61,7 @@ def main():
         by_attr_count['_scanned'] += 1
         if 'start' not in task:
             norm_ext_id = int(task['target_key_v'])
-            if norm_ext_id < 323185:
+            if norm_ext_id < 322000:
                 # Clean-up old tasks
                 file_db.delete(task)
             else:
@@ -75,11 +75,6 @@ def main():
                     by_attr_count[attr] += 1
     print(f"scan took: {(time()-start):.2f}")
     print(by_attr_count)
-    for norm in file_db.all(norm_meta):
-        if norm != {}:
-            ext_id = int(norm['ext_id'])
-            if ext_id >= 323102 and ext_id <= 323151:
-                file_db.delete(norm)
 
 
 if __name__ == '__main__':
