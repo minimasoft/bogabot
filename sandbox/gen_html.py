@@ -48,14 +48,31 @@ while(curr_date <= today):
             if result_time < html_time:
                 print(f"Skip write, already up to date")
                 skip_write = True
+                skip_write = False
         if skip_write == False:
             print(f"Writing {len(results)} norms...")
             with open(html_path, 'w') as html_o:
-                html_o.write("""<!DOCTYPE html>
+                html_o.write(f"""<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<style>
+<title>Agregado del boletín oficial {day:02}/{month:02}/{year}</title>
+<meta name="description" content="Resumen, referencias y análisis de los {len(results)} artículos en sección primera del Boletín Oficial de la República Argentina"/>
+<meta property="og:url" content="https://hil.ar/bora/bo{(year-2000):02}{month:02}{day:02}.html"/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="Agregado del boletín oficial {day:02}/{month:02}/{year}"/>
+<meta property="og:description" content="Resumen, referencias y análisis de los {len(results)} artículos en sección primera del Boletín Oficial de la República Argentina"/>
+<meta property="og:image" content="https://hil.ar/bora/meta.jpg"/>
+<meta property="twitter:domain" content="hil.ar"/>
+<meta property="twitter:url" content="https://hil.ar/bora/bo{(year-2000):02}{month:02}{day:02}.html"/>
+<meta property="twitter:card" content="summary_large_image"/>
+<meta property="twitter:title" content="Agregado del boletín oficial {day:02}/{month:02}/{year}"/>
+<meta property="twitter:description" content="Resumen, referencias y análisis de los {len(results)} artículos en sección primera del Boletín Oficial de la República Argentina"/>
+<meta property="twitter:image" content="https://hil.ar/bora/meta.jpg"/>
+<meta property="twitter:site" content="@minimasoft"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+""")
+                html_o.write("""<style>
 @font-face {
 font-family: 'Noto Sans Mono';
 font-style: normal;
