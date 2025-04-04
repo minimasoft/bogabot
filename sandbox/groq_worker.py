@@ -27,6 +27,8 @@ worker_config = load_json(worker_config_path)
 wait_cycle_s = 5.0
 
 MODEL="qwen-qwq-32b"
+# TODO: use this for decree ref if it fails? 
+MODEL_B="deepseek-r1-distill-qwen-32b"
 
 
 def query_deep(model_name:str, prompt:str) -> str:
@@ -90,13 +92,12 @@ def __main__():
     running = True
     last_check_s = 0
     while running:
-        all_tasks = sorted(filter(lambda t: 'start' not in t and t['target_attr'] in attr_list, db.all(llm_task_meta, last_check_s)), key=lambda t: int(t['target_key_v']), reverse=True)
+        all_tasks = sorted(filter(lambda t: 'start' not in t and t['target_attr'] in attr_list, db.all(llm_task_meta, last_check_s)), key=lambda t: int(t['target_key_v']), reverse=False)
         for target_attr in attr_list:
             for llm_task in filter(lambda t: target_attr == t['target_attr'], all_tasks):
                 print(f"Checking task for {llm_task['target_key_v']}")
                 if llm_task.e()['time'] > last_check_s:
                     last_check_s = llm_task.e()['time']
-
                 target_obj = db.read(llm_task['target_key_v'], norm_meta)
                 assert target_obj != {}
 
@@ -129,18 +130,35 @@ def __main__():
                     for k in prompt.keys():
                         n = len(prompt[k])
                         print('v'*12)
-                        print(f" {n}")
+                        print(f"  {n}")
                         print('^'*12)
-                        if n > 400000:
+                        if n > 419999:
                             print("TODO: exta-big law... Can't crunch now. GRRRR")
                             print(k)
                         else:
-                            reduce_context += query_deep(MODEL, prompt[k])
+                            more_context = ""
+                            retry = 2 
+                            while more_context == "" and retry >= 0:
+                                try:
+                                    more_context = query_deep(MODEL, prompt[k])
+                                except Exception as e:
+                                    print(e)
+                                    print("WILL RETRY")
+                                    sleep(1)
+                                    retry = retry - 1
+                            reduce_context += more_context
                             reduce_context += "\n"
                     reducer = reducer.replace('_reducer_', reduce_context)
                     print(reducer)
                     print('='*80)
-                    llm_output = query_deep(MODEL, reducer)
+                    try:
+                        llm_output = query_deep(MODEL, reducer)
+                    except Exception as e:
+                        print(e)
+                        print("WILL RETRY!!!")
+                        sleep(1)
+                        llm_output = query_deep(MODEL, reducer)
+
                 else:
                     llm_output = query_deep(MODEL, prompt)
 

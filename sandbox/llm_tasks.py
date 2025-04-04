@@ -250,7 +250,7 @@ class LawRefTask(LLMTask):
     def _select(self, norm: dict) -> bool:
         if 'tags' not in norm:
             raise NotEnoughData
-        tag_filter = all(tag not in ['#designacion','#renuncia', '#cese', '#inscripcion', '#edicto', '#recurso_administrativo'] for tag in norm['tags'])
+        tag_filter = all(tag not in ['#designacion','#renuncia', '#cese', '#inscripcion', '#edicto', '#recurso_administrativo'] for tag in norm['tags']) or '#presidencial' in norm['tags']
         return norm['official_id'] != "" and tag_filter
 
     def _query(self, norm: dict) -> str:
@@ -300,7 +300,7 @@ class DecreeRefTask(LLMTask):
     def _select(self, norm: dict) -> bool:
         if 'tags' not in norm:
             raise NotEnoughData
-        tag_filter = all(tag not in ['#designacion','#renuncia', '#cese', '#inscripcion', '#edicto', '#recurso_administrativo'] for tag in norm['tags'])
+        tag_filter = all(tag not in ['#designacion','#renuncia', '#cese', '#inscripcion', '#edicto', '#recurso_administrativo'] for tag in norm['tags']) or '#presidencial' in norm['tags']
         return norm['official_id'] != "" and tag_filter
 
     def _query(self, norm: dict) -> str:
@@ -397,7 +397,7 @@ class AnalysisTask(LLMTask):
             raise NotEnoughData
         if 'decree_ref' not in norm:
             raise NotEnoughData
-        tag_filter = all(tag not in ['#edicto','#designacion','#cese','#inscripcion','#renuncia','#multa', '#recurso_administrativo'] for tag in norm['tags'])
+        tag_filter = all(tag not in ['#edicto','#designacion','#cese','#inscripcion','#renuncia','#multa', '#recurso_administrativo'] for tag in norm['tags']) or '#presidencial' in norm['tags']
         subjects_out = [
             "BANCO CENTRAL",
             "BANCO DE LA NACI",
