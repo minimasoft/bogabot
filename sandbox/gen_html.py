@@ -82,7 +82,6 @@ while(curr_date <= today):
   src: url(/NotoSansMonoLatin.woff2) format('woff2');
 }
 
-/* Estilos base compartidos */
 body {
   font-family: 'Noto Sans Mono';
   font-size: 16px;
@@ -139,7 +138,6 @@ td {
   max-width: 960px;
 }
 
-/* 🌞 Modo claro */
 @media (prefers-color-scheme: light) {
   body {
     background-color: #f9fafb;
@@ -188,7 +186,7 @@ td {
   }
 }
 
-/* 🌚 Modo oscuro */
+
 @media (prefers-color-scheme: dark) {
   body {
     background-color: #111827;
