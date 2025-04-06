@@ -1,10 +1,13 @@
-- Show/hide by tags in page ideally with just CSS
-- Add designations gnocchi
 - Clean-up and organize fetch and cache of infoleg of law & decree
+- Show/hide by tags in page ideally with just CSS (
+    - Organize html to allow better CSS selection
+    - Use PoC tabs code to show/hide according to selected tags
+)
+- Add designations gnocchi
 - Add db hooks
 - Add generic worker code (process signal processing, auto-update)
 - Add db index
 - Add support for resolution linking with fetch & cleanup (in progress)
 - Add support for constitution context and norm analysis (when I have more gpus or moneyz)
 - Add cross-reference for recent decrees with ext_id
-- Implement user agent filter to fix twitterbot low iq
+- Implement user agent filter to fix twitterbot low iq (maybe implemented with url shortener)
