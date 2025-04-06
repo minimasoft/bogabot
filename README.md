@@ -18,4 +18,4 @@ El resultado de este procesamiento se comparte en HTML básico con extracción d
 
 Cuando finalice el PoC bogabot quedará en este repositorio como una vara a superar por futuros bogabots.
 
-Sin embargo hay muchas tareas por realizar para terminar con el experimento; por costumbre de desarrollar en inglés las tareas futuras se encuentran en las lineas del archivo `TODO`.
+Sin embargo hay muchas tareas por realizar para terminar con el experimento; por costumbre de desarrollar en inglés las tareas futuras se encuentran en ese idioma en las lineas del archivo `TODO`.
