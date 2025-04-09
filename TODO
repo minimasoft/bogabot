@@ -1,4 +1,5 @@
 - Clean-up and organize fetch and cache of infoleg of law & decree
+- Add support for attachments
 - Show/hide by tags in page ideally with just CSS (
     - Organize html to allow better CSS selection
     - Use PoC tabs code to show/hide according to selected tags
