@@ -5,7 +5,6 @@
     - Use PoC tabs code to show/hide according to selected tags
 )
 - Add designations gnocchi
-- Add db hooks
 - Add generic worker code (process signal processing, auto-update)
 - Add db index
 - Add support for resolution linking with fetch & cleanup (in progress)

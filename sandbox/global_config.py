@@ -3,6 +3,7 @@
 from pathlib import Path
 from os import getenv
 from file_db import FileDBMeta
+from db_config import NormMeta, LLMTaskMeta
 
 
 def _env(key: str, default=None):
@@ -16,7 +17,7 @@ def gconf(key: str):
             'DATA_PATH': Path(_env("DATA_PATH", "../data/")),
             'FILEDB_PATH': Path(_env("FILEDB_PATH", "../filedb")),
             'FILEDB_SALT': _env("FILEDB_SALT", "bo_salt"),
-            'NORM_META': FileDBMeta('norm', 'ext_id'),
-            'LLM_TASK_META': FileDBMeta('llm_task', 'task_key'),
+            'NORM_META': NormMeta(),
+            'LLM_TASK_META': LLMTaskMeta(),
         }
     return _gconf_cache[key]

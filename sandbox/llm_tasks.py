@@ -89,23 +89,25 @@ class LLMTask():
     def _filter(self, llm_output:str) -> str:
         return llm_output
 
-    def check(self, obj: dict, meta: dict) -> bool:
-        if meta['type'] != self.obj_type:
+    def check(self, obj: FileDBRecord) -> bool:
+        if obj.m().d()['type'] != self.obj_type:
             raise BadObjectType
         return self._select(obj)
 
-    def generate(self, obj: dict, meta: dict) -> FileDBRecord:
+    def generate(self, obj: FileDBRecord) -> FileDBRecord:
+        obj_type = obj.m().d()['type']
+        obj_key = obj.m().d()['key']
         return FileDBRecord(gconf("LLM_TASK_META"), {
-            'task_key': f"{meta['type']}[{obj[meta['key']]}].{self.obj_attr}",
+            'task_key': f"{obj_type}[{obj[obj_key]}].{self.obj_attr}",
             'prompt': self._query(obj),
-            'target_type': meta['type'],
-            'target_key': meta['key'],
-            'target_key_v': obj[meta['key']],
+            'target_type': obj_type,
+            'target_key': obj_key,
+            'target_key_v': obj[obj_key],
             'target_attr': self.obj_attr,
             'multi_step': self.multi_step
         })
 
-    def post_process(self, llm_output:str, obj: dict) -> dict:
+    def post_process(self, llm_output:str, obj: FileDBRecord) -> dict:
         obj[self.obj_attr] = self._filter(llm_output)
         return obj
 

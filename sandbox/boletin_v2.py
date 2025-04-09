@@ -12,7 +12,6 @@ from pathlib import Path
 from requests.adapters import HTTPAdapter, Retry
 from file_db import FileDB, FileDBMeta, FileDBRecord
 from global_config import gconf
-from llm_tasks import get_llm_task_map, NotEnoughData
 from time import sleep
 
 
@@ -139,16 +138,6 @@ def main():
             else:
                 current_id += 100
                 continue
-        if norm is not None:
-            norm_map = llm_task_map['norm']
-            for attr in norm_map.keys():
-                try:
-                    if attr not in norm:
-                        if norm_map[attr].check(norm, norm_meta.d()):
-                            llm_task = norm_map[attr].generate(norm, norm_meta.d())
-                            file_db.write(llm_task)
-                except NotEnoughData:
-                    pass
         current_id = current_id + 1
         
 

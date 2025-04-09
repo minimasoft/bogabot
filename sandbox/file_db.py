@@ -29,6 +29,10 @@ class FileDBMeta():
             'key': self.obj_key_field_s,
         }
 
+    def on_update(self, db, new_obj):
+        pass
+
+
 class FileDBRecord(dict):
     def __init__(self, meta: FileDBMeta, *args, **kwargs):
         super(FileDBRecord,self).__init__(*args, **kwargs)
@@ -190,11 +194,11 @@ class FileDB():
             if new_data != {}:
                 record['set'] = new_data
             # TODO: index processing, check fields for new_data, old_data, etc
-            # TODO: hooks
             new_part_path = obj_path / self._new_part_name_v2()
             self._write_part(new_part_path, record)
             obj.e()['time'] = time()
-    
+            obj.m().on_update(self, obj)
+
 
     def delete(self, obj: FileDBRecord):
         meta = obj.m()
@@ -277,11 +281,16 @@ def __explore__():
         print(db.read(obj_key_v, obj_meta))
     else:
         print("[")
-        for obj in db.all(obj_type):
-            for key in obj.keys():
-                if isinstance(obj[key], str):
-                    if len(obj[key]) > 16:
-                        obj[key] = obj[key][:16] 
+        for obj in db.all(FileDBMeta(obj_type,"")):
+            #for key in obj.keys():
+                #if isinstance(obj[key], str):
+                    #if len(obj[key]) > 16:
+                    #    obj[key] = obj[key][:16] 
+            if 'start' in obj:
+                continue
+            if 'prompt' in obj:
+                prompt = obj.pop('prompt')
+                print(f"prompt=\n{prompt}\n")
             print(json.dumps(obj, indent=2, ensure_ascii=False))
             print(",")
         print("{}]")

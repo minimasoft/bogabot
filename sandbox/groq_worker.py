@@ -44,7 +44,7 @@ def query_deep(model_name:str, prompt:str) -> str:
     response = client.chat.completions.create(
         model=model_name,
         messages=[
-            {"role": "system", "content": "You are bogabot, a helpful and precise law asistant for Argentina"},
+            {"role": "system", "content": "You are bogabot, a helpful and precise law asistant for Argentina. Answer in spanish only."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.42,
@@ -57,18 +57,6 @@ def query_deep(model_name:str, prompt:str) -> str:
         if len(response_parts) > 2:
             print(f"{'*'*80}\nWeird 3 part response: {response_parts}\n{'*'*80}") 
     return llm_response
-
-# TODO: universal hooks for file db
-def _hook_update_norm(norm: dict, norm_meta_d:dict, norm_map: dict):
-    for attr in norm_map.keys():
-        try:
-            if attr not in norm.keys():
-                if norm_map[attr].check(norm, norm_meta_d):
-                    llm_task = norm_map[attr].generate(norm, norm_meta_d)
-                    yield llm_task
-        except NotEnoughData:
-            pass
-
 
 def __main__():
     global worker_config
@@ -180,8 +168,6 @@ def __main__():
                 db.write(target_obj)
                 # only write llm_task with 'end' after storing the result
                 db.write(llm_task)
-                for new_task in _hook_update_norm(target_obj, norm_meta.d(), task_map['norm']):
-                    db.write(new_task)
                 # rate_limit if needed
 
         print(f"Task cycle done. Will re-scan in {wait_cycle_s:.2f} seconds...")
