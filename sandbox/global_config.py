@@ -2,8 +2,6 @@
 
 from pathlib import Path
 from os import getenv
-from file_db import FileDBMeta
-from db_config import NormMeta, LLMTaskMeta
 
 
 def _env(key: str, default=None):
@@ -21,3 +19,5 @@ def gconf(key: str):
             'LLM_TASK_META': LLMTaskMeta(),
         }
     return _gconf_cache[key]
+
+from db_config import NormMeta, LLMTaskMeta

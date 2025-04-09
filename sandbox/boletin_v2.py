@@ -93,8 +93,6 @@ def scan_bo_gob_ar_section_one(current_id, meta):
 
 def main():
 
-    llm_task_map = get_llm_task_map()
-
     file_db = FileDB(
         gconf("FILEDB_PATH"),
         gconf("FILEDB_SALT"),

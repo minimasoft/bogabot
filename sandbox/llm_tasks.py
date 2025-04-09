@@ -3,10 +3,10 @@
 from helpers import load_json_gz
 from pathlib import Path
 from bs4 import BeautifulSoup
-from global_config import gconf
-from file_db import FileDBRecord
 import json
 import gzip
+from global_config import gconf
+from file_db import FileDBRecord
 
 
 ### Lazy context ref
