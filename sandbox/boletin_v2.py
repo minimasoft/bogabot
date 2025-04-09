@@ -93,9 +93,6 @@ def scan_bo_gob_ar_section_one(current_id, meta):
 
 
 def main():
-    last_id = 323447 # helper
-    if len(sys.argv) == 2:
-        last_id = int(sys.argv[1])
 
     llm_task_map = get_llm_task_map()
 
@@ -105,7 +102,17 @@ def main():
     )
     norm_meta = gconf("NORM_META")
     llm_task_meta = gconf("LLM_TASK_META")
-    current_id = last_id 
+
+    last_id = 323614 # helper
+
+    current_id = last_id + 1
+    while last_id != current_id:
+        norm = file_db.read(str(current_id), norm_meta)
+        if norm == {}:
+            last_id = current_id
+        else:
+            current_id += 1
+    print(f"starting scan on {last_id}")
     last_new_task = last_id -1
     running = True
     while running:

@@ -29,10 +29,14 @@ wait_cycle_s = 5.0
 MODEL="qwen-qwq-32b"
 # TODO: use this for decree ref if it fails? 
 MODEL_B="deepseek-r1-distill-qwen-32b"
+#MODEL="meta-llama/llama-4-scout-17b-16e-instruct"
 
 
 def query_deep(model_name:str, prompt:str) -> str:
     global worker_config
+    if len(prompt) > int(worker_config['num_ctx'])*3.5:
+        print(f"Context too big for this worker({model_name}): {len(prompt)}")
+        raise Exception
     client = OpenAI(
         api_key=worker_config['api_key'],
         base_url="https://api.groq.com/openai/v1/"
@@ -101,7 +105,6 @@ def __main__():
                 target_obj = db.read(llm_task['target_key_v'], norm_meta)
                 assert target_obj != {}
 
-
                 if llm_task['target_attr'] in target_obj:
                     print("duplicated task? TODO: implement force")
                     continue
@@ -114,10 +117,6 @@ def __main__():
                     db.write(llm_task, overwrite=False)
                 except FileDB.NoOverwrite:
                     continue
-
-                #if len(prompt) > int(worker_config['num_ctx'])*3.5:
-                #    print(f"Context too big for this worker: {len(llm_task['prompt'])}")
-                #    continue
 
                 prompt = llm_task['prompt']
                 results = {}

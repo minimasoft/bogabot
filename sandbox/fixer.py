@@ -14,8 +14,8 @@ from time import time
 
 
 def main():
-    last_id = 323358
-    max_id = 323359
+    last_id = 324614
+    max_id = 323750
 
     llm_task_map = get_llm_task_map()
 
@@ -67,8 +67,9 @@ def main():
             else:
                 norm = file_db.read(str(task['target_key_v']), norm_meta)
                 attr = task['target_attr']
-                if attr in norm.keys():
-                    print(f"WUT {llm_task} \n\n {norm}")
+                if attr in norm:
+                    #print(f"WUT {llm_task} \n\n {norm}")
+                    file_db.delete(task)
                 if attr not in by_attr_count.keys():
                     by_attr_count[attr] = 1
                 else:
