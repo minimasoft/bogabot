@@ -36,7 +36,8 @@ _constitucion_ref = None
 def constitucion_ref():
     global _constitucion_ref
     if _constitucion_ref is None:
-        _constitucion_ref = load_json_gz(gconf("DATA_PATH") / 'constitucion_nacional.txt')
+        with open(gconf("DATA_PATH") / 'constitucion_nacional.txt', 'r', encoding='utf-8') as fp:
+            _constitucion_ref = fp.read()
     return _constitucion_ref
 
 with open(gconf("DATA_PATH") / "mapa_context.txt", "r", encoding="utf-8") as fp:
