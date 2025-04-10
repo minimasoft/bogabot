@@ -8,6 +8,5 @@
 - Add generic worker code (process signal processing, auto-update)
 - Add db index
 - Add support for resolution linking with fetch & cleanup (in progress)
-- Add support for constitution context and norm analysis (when I have more gpus or moneyz)
 - Add cross-reference for recent decrees with ext_id
 - Implement user agent filter to fix twitterbot low iq (maybe implemented with url shortener)

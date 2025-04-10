@@ -32,6 +32,12 @@ def reso_ref():
         _reso_ref = load_json_gz(gconf("DATA_PATH") / 'reso_ref.json.gz')
     return _reso_ref
 
+_constitucion_ref = None
+def constitucion_ref():
+    global _constitucion_ref
+    if _constitucion_ref is None:
+        _constitucion_ref = load_json_gz(gconf("DATA_PATH") / 'constitucion_nacional.txt')
+    return _constitucion_ref
 
 with open(gconf("DATA_PATH") / "mapa_context.txt", "r", encoding="utf-8") as fp:
     mapa_context = f"Solo para contexto estos son los cargos conocidos al 20 de Marzo de 2025:\n```{fp.read()}\n```\n\n"
@@ -452,6 +458,33 @@ class AnalysisTask(LLMTask):
             return prompt
 
 
+class ConstitutionalTask(LLMTask):
+    def __init__(self):
+        super().__init__('norm', 'constitutional')
+
+    def _select(self, norm: dict) -> bool:
+        if 'tags' not in norm:
+            raise NotEnoughData
+        tag_filter = all(tag not in ['#edicto','#designacion','#cese','#inscripcion','#renuncia','#multa', '#recurso_administrativo'] for tag in norm['tags']) or '#presidencial' in norm['tags']
+        subjects_out = [
+            "BANCO CENTRAL",
+            "BANCO DE LA NACI",
+            "ADUANERO",
+            "ASOCIATIVISMO"
+        ]
+        subjects_filter = all([
+            norm['subject'].find(subject) == -1
+            for subject in subjects_out
+        ])
+        return norm['official_id'] != "" and tag_filter and subjects_filter
+
+    def _query(self, norm: dict) -> str:
+        prompt = constitucion_ref()
+        prompt += f"\nLa nueva norma:\n```\n{norm_text(norm)}\n```\n"
+        prompt += "Determinar si la nueva norma es constitucional. Si resulta constitucional responder brevemente, si tiene irregularidades explicarlas e indicar los posibles conflictos con la constitución."
+        return prompt
+
+
 def get_llm_task_map() -> dict:
     norm_tasks = [
         BriefTask(),
@@ -462,6 +495,7 @@ def get_llm_task_map() -> dict:
         DecreeRefTask(),
     #    ResolutionRefTask(),
         AnalysisTask(),
+        ConstitutionalTask(),
     ]
 
     return {

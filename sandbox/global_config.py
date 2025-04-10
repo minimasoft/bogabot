@@ -11,6 +11,7 @@ _gconf_cache = None
 def gconf(key: str):
     global _gconf_cache
     if _gconf_cache is None:
+        from db_config import NormMeta, LLMTaskMeta
         _gconf_cache = {
             'DATA_PATH': Path(_env("DATA_PATH", "../data/")),
             'FILEDB_PATH': Path(_env("FILEDB_PATH", "../filedb")),
@@ -19,5 +20,3 @@ def gconf(key: str):
             'LLM_TASK_META': LLMTaskMeta(),
         }
     return _gconf_cache[key]
-
-from db_config import NormMeta, LLMTaskMeta
