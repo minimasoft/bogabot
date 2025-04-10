@@ -1,3 +1,4 @@
+- Filter and normalize designation output
 - Clean-up and organize fetch and cache of infoleg of law & decree
 - Add support for attachments
 - Add designations gnocchi
