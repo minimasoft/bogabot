@@ -11,7 +11,7 @@ class NormMeta(FileDBMeta):
         norm_map = get_llm_task_map()['norm']
         for attr in norm_map.keys():
             try:
-                if attr not in norm.keys():
+                if attr not in new_norm.keys():
                     if norm_map[attr].check(new_norm):
                         llm_task = norm_map[attr].generate(new_norm)
                         db.write(llm_task)

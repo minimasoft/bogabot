@@ -39,7 +39,13 @@ while(curr_date <= today):
         for norm in all_norms
         if 'publish_date' in norm and norm['publish_date'] == target_date
     ]
-
+    current_tags = set()
+    for norm in results:
+        for tag in norm['tags']:
+            current_tags.add(tag[1:])
+    current_tags = [
+      tag for tag in ['presidencial','designacion','renuncia','cese','multa','laboral','tarifas','anses','recurso_administrativo','cierre','subasta','edicto'] if tag in current_tags
+    ]
     if len(results) > 0:
         skip_write = False
         if html_path.exists() == True:
@@ -48,6 +54,7 @@ while(curr_date <= today):
             if result_time < html_time:
                 print(f"Skip write, already up to date")
                 skip_write = True
+                skip_write = False
         if skip_write == False:
             print(f"Writing {len(results)} norms...")
             with open(html_path, 'w') as html_o:
@@ -135,6 +142,21 @@ td {
   font-size: 0.875rem;
   margin: 1rem auto;
   max-width: 960px;
+}
+
+.bo_norm {
+  display: none;
+}
+
+""")
+                test = "\n".join([
+                  f"#{tag}:checked ~ .c_{tag} {'{'}\n  display: block;\n{'}'}\n"
+                  for tag in current_tags
+                ])
+                html_o.write(test)
+                html_o.write("""
+#no_tag:checked ~ .c_no_tag {
+  display: block;
 }
 
 @media (prefers-color-scheme: light) {
@@ -238,6 +260,9 @@ td {
 </style>
 </head>
 <body>
+<div>
+""")
+                html_o.write("""
 <table>
 <tbody>
 <tr><td>
@@ -245,10 +270,14 @@ td {
 </td></tr>
 <tr><td>
 <h2>Agregado de la sección primera del bolet&iacute;n oficial fecha """)
-                html_o.write(f"{day}/{month}/{year}</h2></td></tr>")
+                html_o.write(f"{day}/{month}/{year}</h2></td></tr><tr><td>")
+                for tag in current_tags:
+                    html_o.write(f"<input type=\"checkbox\" id=\"{tag}\" name=\"tags\" checked><label for=\"{tag}\">#{tag}</label>\n")
+                html_o.write('<input type="checkbox" id="no_tag" name="tags" checked><label for="no_tag">(sin tag)</label>\n')
                 appoint_list = []
                 resign_list = []
                 for result in sorted(results, key=lambda r: r['ext_id']):
+                    # Collect data
                     if 'appoint_list' in result:
                         for appointment in result['appoint_list']:
                             appointment['via'] = result['data_link']
@@ -259,10 +288,13 @@ td {
                         for resign in result['resign_list']:
                             resign['via'] = result['data_link']
                             resign_list.append(resign)
-                    html_o.write(f"<tr>\n<td><div id='bo{result['ext_id']}' class='")
-                    if 'tags' in result:
-                        html_o.write(" ".join(tag[1:] for tag in result['tags']))
-                    html_o.write("'>\n")
+                    # Write section
+                    html_o.write(f"<div id='bo{result['ext_id']}' class='bo_norm ")#><div id='bo{result['ext_id']}' class='bo_norm ")
+                    if 'tags' in result and len(result['tags']) > 0:
+                        html_o.write(" ".join(f"c_{tag[1:]}" for tag in result['tags']))
+                    else:
+                        html_o.write("c_no_tag")
+                    html_o.write(f"'>\n")
                     html_o.write(f"<details open class=details_1><summary><a href=#bo{result['ext_id']}><img class=svg_icon src='svg/l.svg'></a> <b>{result['subject']}  -  {result['official_id'] or result['name']}</b><br>")
                     if 'tags' in result:
                         html_o.write(f"{' '.join(result['tags'])}")
@@ -309,12 +341,17 @@ td {
                     if 'analysis' in result and result['analysis'] is not None:
                         analysis = result['analysis']
                         analysis = markdown.markdown(analysis)        
-                        html_o.write(f"<details><summary><b><u>Análisis de bogabot</u></b></summary>{analysis}</details>\n")
+                        html_o.write(f"<details><summary><b><u>Análisis de bogabot (experimental)</u></b></summary>{analysis}</details>\n")
+
+                    if 'constitutional' in result and result['constitutional'] is not None:
+                        constitutional = markdown.markdown(result['constitutional'])
+                        html_o.write(f"<details>\n<summary><b><u>Constitucionalidad (experimental)</u></b></summary>\n{constitutional}\n</details>\n")
+                        
                     html_o.write(f"<details><summary><b><u>Ver texto original</u></b></summary>{result['full_text']}</details>\n")
-                    html_o.write(f"</details>\n</div>\n</td>\n</tr>\n")
-                html_o.write(f"<tr><td><h2><a href='bo{year-2000}{month:02}{day:02}.personal.json'> Bonus 1: JSON designaciones y renuncias</a></h2></td></tr>\n")
+                    html_o.write(f"</details>\n</div>\n")
+                html_o.write(f"</td></tr><tr><td><h2><a href='bo{year-2000}{month:02}{day:02}.personal.json'> Bonus 1: JSON designaciones y renuncias</a></h2></td></tr>\n")
                 html_o.write(f"<tr><td><h2><a href='bo{year-2000}{month:02}{day:02}.designa.csv'>Bonus 2: CSV designaciones</a></h2></td></tr>\n")
-                html_o.write('\n</tbody></table></body></html>\n')
+                html_o.write('\n</tbody></table></div></body></html>\n')
                 with open(json_path, 'wt', encoding='utf-8') as jf:
                     json.dump({
                         'in': appoint_list,
