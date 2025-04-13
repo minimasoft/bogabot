@@ -26,28 +26,22 @@ worker_config = load_json(worker_config_path)
 #rpd = int
 wait_cycle_s = 5.0
 
-MODEL="qwen-qwq-32b"
-# TODO: use this for decree ref if it fails? 
-MODEL_B="deepseek-r1-distill-qwen-32b"
-#MODEL="meta-llama/llama-4-scout-17b-16e-instruct"
-
-
-def query_deep(model_name:str, prompt:str) -> str:
+def query_deep(prompt:str) -> str:
     global worker_config
     if len(prompt) > int(worker_config['num_ctx'])*3.5:
         print(f"Context too big for this worker({model_name}): {len(prompt)}")
         raise Exception
     client = OpenAI(
         api_key=worker_config['api_key'],
-        base_url="https://api.groq.com/openai/v1/"
+        base_url=worker_config['base_url']
     )
     response = client.chat.completions.create(
-        model=model_name,
+        model=worker_config['model'],
         messages=[
             {"role": "system", "content": "You are bogabot, a helpful and precise law asistant for Argentina. Answer in spanish only."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.42,
+        temperature=0.4,
         stream=False
     )
     llm_response = response.choices[0].message.content
@@ -127,7 +121,7 @@ def __main__():
                             retry = 2 
                             while more_context == "" and retry >= 0:
                                 try:
-                                    more_context = query_deep(MODEL, prompt[k])
+                                    more_context = query_deep(prompt[k])
                                 except Exception as e:
                                     print(e)
                                     print("WILL RETRY")
@@ -139,21 +133,21 @@ def __main__():
                     print(reducer)
                     print('='*80)
                     try:
-                        llm_output = query_deep(MODEL, reducer)
+                        llm_output = query_deep(reducer)
                     except Exception as e:
                         print(e)
                         print("WILL RETRY!!!")
                         sleep(1)
-                        llm_output = query_deep(MODEL, reducer)
+                        llm_output = query_deep(reducer)
 
                 else:
-                    llm_output = query_deep(MODEL, prompt)
+                    llm_output = query_deep(prompt)
 
                 llm_task['end'] = str(time_ns())
-                llm_task['model'] = MODEL
+                llm_task['model'] = worker_config['model']
                 llm_task['num_ctx'] = worker_config['num_ctx']
 
-                print(f"llm_output from {MODEL}:\n{llm_output}")
+                print(f"llm_output from {worker_config['model']}:\n{llm_output}")
 
                 try:
                     task_map[
