@@ -44,7 +44,7 @@ while(curr_date <= today):
         for tag in norm['tags']:
             current_tags.add(tag[1:])
     current_tags = [
-      tag for tag in ['presidencial','designacion','renuncia','cese','multa','laboral','tarifas','anses','recurso_administrativo','cierre','subasta','edicto'] if tag in current_tags
+      tag for tag in ['presidencial','designacion','renuncia','cese','inscripcion','multa','laboral','tarifas','anses','recurso_administrativo','cierre','subasta','edicto'] if tag in current_tags
     ]
     if len(results) > 0:
         skip_write = False
@@ -54,7 +54,6 @@ while(curr_date <= today):
             if result_time < html_time:
                 print(f"Skip write, already up to date")
                 skip_write = True
-                skip_write = False
         if skip_write == False:
             print(f"Writing {len(results)} norms...")
             with open(html_path, 'w') as html_o:
