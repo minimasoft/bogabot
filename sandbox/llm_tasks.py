@@ -486,6 +486,39 @@ class ConstitutionalTask(LLMTask):
         return prompt
 
 
+class FineTask(LLMTask):
+    def __init__(self):
+        super().__init__('norm', 'fine_list')
+
+    def _select(self, norm: dict) -> bool:
+        if 'tags' not in norm:
+            raise NotEnoughData
+        tag_filter = '#multa' in norm['tags']
+        return tag_filter
+
+    def _query(self, norm: dict) -> str:
+        prompt = """Crear una lista en formato JSON (sin markdown)  de las multas con los siguientes campos:
+- 'target': Nombre de la persona, empresa, sociedad o grupo afectado por la multa.
+- 'target_id': Número de DNI, CUIL o CUIT del afectado (si se menciona, sino "").
+- 'amount_up': Monto de la multa en UP (Unidades de Penalizacion) como número si se especifica, sino 0.
+- 'amount_usd': Monto de la multa en dólares estadounidenses como número si se especifica, sino 0.
+- 'amount_ars': Monto de la multa en pesos argentinos como número si se especifica, sino 0.
+- 'reason_brief': La razón de la multa resumida en pocas palabras.
+- 'authority': el departamento del gobierno que aplica la multa.
+Si no hay la respuesta es una lista vacía '[]', si hay elementos directamente la lista.
+
+Norma:
+```
+"""
+        prompt += norm_text(norm) + "\n```\n"
+
+        return prompt
+
+    def _filter(self, llm_output: str) -> list:
+        json_value = json_llm(llm_output)
+        return json_value
+
+
 def get_llm_task_map() -> dict:
     norm_tasks = [
         BriefTask(),
@@ -497,6 +530,7 @@ def get_llm_task_map() -> dict:
     #    ResolutionRefTask(),
         AnalysisTask(),
         ConstitutionalTask(),
+        FineTask(),
     ]
 
     return {

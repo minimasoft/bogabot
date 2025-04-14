@@ -15,7 +15,7 @@ from time import time
 
 def main():
     last_id = 323758
-    max_id = 323850
+    max_id = 321850
 
     llm_task_map = get_llm_task_map()
 
@@ -37,13 +37,11 @@ def main():
     while current_id < max_id:
         print(current_id)
         norm = file_db.read(str(current_id), norm_meta)
-        file_db.delete(norm)
-        a = 1/0
         if norm != {}:
             norm_map = llm_task_map['norm']
             for attr in norm_map.keys():
                 try:
-                    if attr not in norm or attr:
+                    if attr not in norm:
                         if norm_map[attr].check(norm):
                             llm_task = norm_map[attr].generate(norm)
                             llm_task_prev = file_db.read(llm_task[llm_task_meta.obj_key_field_s], llm_task_meta)

@@ -154,6 +154,9 @@ class FileDB():
                         obj.pop(key)
             if 'set' in record:
                 obj.update(record['set'])
+        if obj == {}:
+            shutil.rmtree(obj_path)
+            return None
         obj.e()['time'] = ctime
         return obj
 
@@ -219,7 +222,8 @@ class FileDB():
         for obj_path in type_path.glob(expr):
             if obj_path.stat().st_mtime >= since_s:
                 data = self._direct_read(obj_path, meta)
-                yield data
+                if data != None:
+                    yield data
 
 
     def compress(self, meta: FileDBMeta, sure: bool=False):
