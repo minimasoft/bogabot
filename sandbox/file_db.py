@@ -129,7 +129,10 @@ class FileDB():
                 json.dump(obj, fp, ensure_ascii=False)
         except Exception as e:
             print(f"error at _write_part({part_path})")
-            part_path.unlink()
+            try:
+                part_path.unlink()
+            except Exception:
+                pass
             raise e
 
 
@@ -155,8 +158,8 @@ class FileDB():
             if 'set' in record:
                 obj.update(record['set'])
         if obj == {}:
-            shutil.rmtree(obj_path)
-            return None
+            #shutil.rmtree(obj_path)
+            return {}
         obj.e()['time'] = ctime
         return obj
 
@@ -222,7 +225,7 @@ class FileDB():
         for obj_path in type_path.glob(expr):
             if obj_path.stat().st_mtime >= since_s:
                 data = self._direct_read(obj_path, meta)
-                if data != None:
+                if data != {}:
                     yield data
 
 
