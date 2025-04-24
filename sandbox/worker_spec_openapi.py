@@ -71,7 +71,7 @@ def __main__():
     running = True
     last_check_s = 0
     while running:
-        all_tasks = sorted(filter(lambda t: int(t['target_key_v']) > 323925 and 'start' not in t and t['target_attr'] in attr_list, db.all(llm_task_meta, last_check_s)), key=lambda t: int(t['target_key_v']), reverse=False)
+        all_tasks = sorted(filter(lambda t: int(t['target_key_v']) > 324093 and 'start' not in t and t['target_attr'] in attr_list, db.all(llm_task_meta, last_check_s)), key=lambda t: int(t['target_key_v']), reverse=False)
         for target_attr in attr_list:
             for llm_task in filter(lambda t: target_attr == t['target_attr'], all_tasks):
                 print(f"Checking task for {llm_task['target_key_v']}")
