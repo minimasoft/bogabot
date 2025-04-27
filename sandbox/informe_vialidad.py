@@ -35,7 +35,7 @@ def main():
                 if 'CAMINOS DEL RÍO URUGUAY' in norm['full_text'].upper():
                     total_2025_rio_uruguay += 1
     print('#'*80)
-    print(f"Informe preliminar 2025")
+    print(f"Informe preliminar multas Vialidad gobierno Javier Milei")
     print('-'*80)
     print(f"Resoluciones de vialidad: {total_2025_vialidad}")
     print(f"De las cuales clasifican como multas: {total_2025_multas}")

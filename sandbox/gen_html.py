@@ -19,7 +19,7 @@ db = FileDB(
     gconf("FILEDB_SALT"),
 )
 today = date.today() + timedelta(days=1)
-curr_date = date(2025,1,2)
+curr_date = date(2023,12,10)
 # Danger load:
 all_norms = list(db.all(norm_meta))
 all_days = []
@@ -41,8 +41,9 @@ while(curr_date <= today):
     ]
     current_tags = set()
     for norm in results:
-        for tag in norm['tags']:
-            current_tags.add(tag[1:])
+        if 'tags' in norm:
+          for tag in norm['tags']:
+              current_tags.add(tag[1:])
     current_tags = [
       tag for tag in ['presidencial','designacion','renuncia','cese','inscripcion','multa','laboral','tarifas','anses','recurso_administrativo','cierre','subasta','edicto'] if tag in current_tags
     ]
@@ -52,7 +53,7 @@ while(curr_date <= today):
             html_time = html_path.stat().st_ctime
             result_time = max(map(lambda r: r.e()['time'], results)) + 1
             if result_time < html_time:
-                print(f"Skip write, already up to date")
+                #print(f"Skip write, already up to date")
                 skip_write = True
         if skip_write == False:
             print(f"Writing {len(results)} norms...")
@@ -344,6 +345,7 @@ td {
 
                     if 'constitutional' in result and result['constitutional'] is not None:
                         constitutional = markdown.markdown(result['constitutional'])
+                        print(f"{'*'*80}\n{result['constitutional']}\n{'*'*80}\n{constitutional}\n{'*'*80}")
                         html_o.write(f"<details>\n<summary><b><u>Constitucionalidad (experimental)</u></b></summary>\n{constitutional}\n</details>\n")
                         
                     html_o.write(f"<details><summary><b><u>Ver texto original</u></b></summary>{result['full_text']}</details>\n")
@@ -363,7 +365,11 @@ td {
                     for appoint in appoint_list:
                         appoint['norm_link'] = f'=HYPERLINK("{appoint["via"]}")'
                         appoint.pop('via')
-                        writer.writerow(appoint)
+                        try:
+                          writer.writerow(appoint)
+                        except ValueError as ve:
+                          print(appoint)
+                          print(ve)
     if html_path.exists() == True:
         all_days.append(target_date)
     curr_date = curr_date + timedelta(days=1)
@@ -382,7 +388,7 @@ with open(public_path / "index.html", "w", encoding="utf-8") as html_i:
         year = day[2:4]
         month = day[5:7]
         day = day[8:10]
-        html_i.write(f"    <li><a href=bo{year+month+day}.html>Boletín oficial del {day}/{month}/{year}</a></li>\n")
+        html_i.write(f"    <li><a href=bo{year+month+day}>Boletín oficial del {day}/{month}/{year}</a></li>\n")
     html_i.write("""</ul></h3>
 </body>
 </html>

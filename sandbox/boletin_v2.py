@@ -100,7 +100,7 @@ def main():
     norm_meta = gconf("NORM_META")
     llm_task_meta = gconf("LLM_TASK_META")
 
-    last_id = 323614 # helper
+    last_id = 324508 # helper
 
     current_id = last_id + 1
     while last_id != current_id:
@@ -114,7 +114,7 @@ def main():
     running = True
     while running:
         # don't scan too far
-        if (current_id - last_new_task) > 102:
+        if (current_id - last_new_task) > 142:
             if last_new_task > last_id:
                 print("my work here is done.")
                 sys.exit(0)
@@ -134,7 +134,7 @@ def main():
                 last_new_task = current_id
                 file_db.write(norm)
             else:
-                current_id += 100
+                current_id += 7
                 continue
         current_id = current_id + 1
         

@@ -140,7 +140,7 @@ Crear un resumen bajo las siguientes consignas:
 - Solo escribe el resumen, no ofrezcas mas ayuda, la respuesta es final.
 - El resumen debe tener máximo {self.max_len} caracteres.
 - No mencionar que es un resumen.
-- Para decretos no mencionar el número de decreto actual, en todo caso utilizar el término  "Se decreta..."
+- Para decretos no mencionar el número de decreto actual, en cambio utilizar el término  "Se decreta..."
 
 Norma a resumir:
 ```

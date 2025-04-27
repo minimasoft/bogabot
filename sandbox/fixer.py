@@ -61,19 +61,17 @@ def main():
         by_attr_count['_scanned'] += 1
         if 'start' not in task:
             norm_ext_id = int(task['target_key_v'])
-            if norm_ext_id < 322000:
-                # Clean-up old tasks
+            norm = file_db.read(str(task['target_key_v']), norm_meta)
+            attr = task['target_attr']
+            if attr in norm:
+                print(f"Found completed task {llm_task} for {norm['ext_id']};\nWill delete...")
                 file_db.delete(task)
+            if attr not in by_attr_count.keys():
+                by_attr_count[attr] = 1
+                by_attr_count[f"{attr}_prompt_size"] = len(task['prompt'])
             else:
-                norm = file_db.read(str(task['target_key_v']), norm_meta)
-                attr = task['target_attr']
-                if attr in norm:
-                    #print(f"WUT {llm_task} \n\n {norm}")
-                    file_db.delete(task)
-                if attr not in by_attr_count.keys():
-                    by_attr_count[attr] = 1
-                else:
-                    by_attr_count[attr] += 1
+                by_attr_count[attr] += 1
+                by_attr_count[f"{attr}_prompt_size"] += len(task['prompt'])
     print(f"scan took: {(time()-start):.2f}")
     print(by_attr_count)
 
