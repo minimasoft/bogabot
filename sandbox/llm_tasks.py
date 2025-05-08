@@ -467,7 +467,7 @@ class ConstitutionalTask(LLMTask):
     def _select(self, norm: dict) -> bool:
         if 'tags' not in norm:
             raise NotEnoughData
-        tag_filter = all(tag not in ['#edicto','#designacion','#cese','#inscripcion','#renuncia','#multa', '#recurso_administrativo'] for tag in norm['tags']) or '#presidencial' in norm['tags']
+        tag_filter = '#presidencial' in norm['tags'] # all(tag not in ['#edicto','#cese','#inscripcion','#renuncia','#multa', '#recurso_administrativo'] for tag in norm['tags']) or '#presidencial' in norm['tags']
         subjects_out = [
             "BANCO CENTRAL",
             "BANCO DE LA NACI",
