@@ -1,9 +1,7 @@
 - Filter and normalize designation output
 - Clean-up and organize fetch and cache of infoleg of law & decree
-- Add support for attachments
+- Add support for attachments (docling)
 - Add designations gnocchi
 - Add generic worker code (process signal processing, auto-update)
-- Add db index
 - Add support for resolution linking with fetch & cleanup (in progress)
 - Add cross-reference for recent decrees with ext_id
-- Implement user agent filter to fix twitterbot low iq (maybe implemented with url shortener)
