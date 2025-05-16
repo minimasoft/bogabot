@@ -59,7 +59,6 @@ def main():
 
     all_norms = file_db.all(norm_meta, since_s=last_time)
 
-    server = pycouchdb.Server("http://root:muySecreto123@127.0.0.1:5984/")
     print(server.info())
     norm_saver = db_saver('bogabot_v0_norm')
     for norm in all_norms:
