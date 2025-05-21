@@ -138,8 +138,8 @@ class ScanMachine(StateMachine):
         return False
 
 
-class LoaderMachine(StateMachine):
-    def __init__(self, state, norm_online_load, norm_save):
+class LoadMachine(StateMachine):
+    def __init__(self, state, norm_online_load, norm_db_save):
         StateMachine.__init__(self)
         self._current_id = state['last_id']        
         self.norm_online_load = norm_online_load
@@ -151,7 +151,7 @@ class LoaderMachine(StateMachine):
             norm = self.norm_online_load(self._current_id)
             if norm != None:
                 print(f"new norm:\n{norm['ext_id']}")
-                self.norm_save(norm)
+                self.norm_db_save(norm)
             else:
                 return {
                     'last_id': self._current_id - 1
@@ -192,7 +192,7 @@ def main():
     def norm_online_load(norm_id: int) -> bool:
         return scan_bo_gob_ar_section_one(norm_id, norm_meta, peek=False)
 
-    def norm_save(norm: dict):
+    def norm_db_save(norm: dict):
         file_db.write(norm)
 
     state = {
@@ -203,7 +203,7 @@ def main():
         scanner = ScanMachine(state, norm_db_load, norm_online_peek)
         state = scanner.run(signaling)
         if state:
-            loader = LoaderMachine(state, norm_online_load, norm_save)
+            loader = LoadMachine(state, norm_online_load, norm_db_save)
             state = loader.run(signaling)
 
 
