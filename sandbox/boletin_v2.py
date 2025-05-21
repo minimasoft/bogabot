@@ -5,6 +5,7 @@
 import json
 import requests
 import sys
+import signal
 
 from bs4 import BeautifulSoup
 from datetime import date
@@ -29,11 +30,9 @@ def bo_gob_ar_session():
     return session
 
 
-def scan_bo_gob_ar_section_one(current_id, meta):
+def scan_bo_gob_ar_section_one(current_id, meta, peek=False):
     session = bo_gob_ar_session()
     data_link =f"{bo_gob_ar_url()}/detalleAviso/primera/{current_id}/1" # Yes... I know. Did you know?
-
-    norm = FileDBRecord(meta)
 
     print(f"scanning: {data_link}")
 
@@ -42,7 +41,11 @@ def scan_bo_gob_ar_section_one(current_id, meta):
 
         title_div = soup.find('div', {'id': 'tituloDetalleAviso'})
         if title_div is None:
-            return None
+            return False if peek else None
+        if peek:
+            return True
+
+        norm = FileDBRecord(meta)
 
         norm['subject'] = title_div.find('h1').text.strip()
 
@@ -91,53 +94,117 @@ def scan_bo_gob_ar_section_one(current_id, meta):
     return norm
 
 
+class StateMachine():
+    # TODO: contracts
+    def __init__(self):
+        pass
+
+    def run(self) -> dict:
+        pass
+
+
+class ScanMachine(StateMachine):
+    DEFAULT_START = 325645
+    STEP = 13
+    MAX_DISTANCE = 500
+
+    def __init__(self, state: dict, norm_db_load, norm_online_peek):
+        # def norm_db_load(int_id) -> dict, empty dict for None
+        # def norm_online_peek(int_id) -> bool
+        StateMachine.__init__(self)
+        self._user_start_id = state['last_id'] if 'last_id' in state else ScanMachine.DEFAULT_START
+        self._current_id = self._user_start_id
+        while norm_db_load(self._current_id) != {}:
+            self._current_id += 1
+        self._scan_start_id = self._current_id
+        self._norm_online_peek = norm_online_peek
+        print(f"scanner will start at {self._scan_start_id} from tip at {self._user_start_id}")
+
+
+    def run(self, signaling) -> dict:
+        while signaling['running']:
+            if self._current_id > (self._scan_start_id+ScanMachine.MAX_DISTANCE):
+                self._current_id = self._scan_start_id
+            if self._norm_online_peek(self._current_id):
+                # backtrack to the exact beginning of the new block
+                while self._norm_online_peek(self._current_id - 1) == True:
+                    self._current_id -= 1
+                return {
+                    'target_id' : self._current_id
+                }
+            self._current_id += ScanMachine.STEP
+            sleep(1)
+
+        return False
+
+
+class LoaderMachine(StateMachine):
+    def __init__(self, state, norm_online_load, norm_save):
+        StateMachine.__init__(self)
+        self._current_id = state['last_id']        
+        self.norm_online_load = norm_online_load
+        self.norm_save = norm_save
+        print(f"loader will start at {self._current_id}")
+
+    def run(self, signaling):
+        while signaling['running']:
+            norm = self.norm_online_load(self._current_id)
+            if norm != None:
+                print(f"new norm:\n{norm['ext_id']}")
+                self.norm_save(norm)
+            else:
+                return {
+                    'last_id': self._current_id - 1
+                }
+            self._current_id += 1
+            sleep(0.3)
+        return False
+
+
+# Helper to stop properly on process signals
+def running_handler(signaling):
+    def handler(signum, frame):
+        print('Signal handler called with signal', signum)
+        signaling['running'] = False
+    return handler
+
+
 def main():
+    signaling = {
+        'running': True,
+    }
+    signal.signal(signal.SIGINT, running_handler(signaling))
 
     file_db = FileDB(
         gconf("FILEDB_PATH"),
         gconf("FILEDB_SALT"),
     )
+
     norm_meta = gconf("NORM_META")
     llm_task_meta = gconf("LLM_TASK_META")
 
-    last_id = 324508 # helper
+    def norm_db_load(norm_id: int) -> dict:
+        return file_db.read(str(norm_id), norm_meta)
 
-    current_id = last_id + 1
-    while last_id != current_id:
-        norm = file_db.read(str(current_id), norm_meta)
-        if norm == {}:
-            last_id = current_id
-        else:
-            current_id += 1
-    print(f"starting scan on {last_id}")
-    last_new_task = last_id -1
-    running = True
-    while running:
-        # don't scan too far
-        if (current_id - last_new_task) > 142:
-            if last_new_task > last_id:
-                print("my work here is done.")
-                sys.exit(0)
-            print("too far... sleep and restart.")
-            current_id = last_id
-            sleep(10) # don't hit it too hard
-            continue
-        # check if already loaded
-        print(f"check: {current_id}")
-        norm = file_db.read(str(current_id), norm_meta)
-        if norm == {}:
-            # scan
-            print(f"scan: {current_id}")
-            norm = scan_bo_gob_ar_section_one(current_id, norm_meta)
-            if norm is not None:
-                print(f"new norm:\n{norm['ext_id']}")
-                last_new_task = current_id
-                file_db.write(norm)
-            else:
-                current_id += 7
-                continue
-        current_id = current_id + 1
-        
+    def norm_online_peek(norm_id: int) -> bool:
+        return scan_bo_gob_ar_section_one(norm_id, norm_meta, peek=True)
+
+    def norm_online_load(norm_id: int) -> bool:
+        return scan_bo_gob_ar_section_one(norm_id, norm_meta, peek=False)
+
+    def norm_save(norm: dict):
+        file_db.write(norm)
+
+    state = {
+        'last_id': 325654
+    }
+
+    while signaling['running']:
+        scanner = ScanMachine(state, norm_db_load, norm_online_peek)
+        state = scanner.run(signaling)
+        if state:
+            loader = LoaderMachine(state, norm_online_load, norm_save)
+            state = loader.run(signaling)
 
 
 if __name__ == '__main__':
