@@ -37,9 +37,9 @@ def query_deep(prompt:str) -> str:
     )
     response = client.chat.completions.create(
         model=worker_config['model'],
-        service_tier="flex",
+#        service_tier="flex",
         messages=[
-            {"role": "system", "content": "You are Bogabot, a helpful and precise law asistant for Argentina. Make sure to answer in spanish only."},
+            {"role": "system", "content": "You are a helpful law research asistant for Argentina. Make sure to write answers in spanish only."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.6, # TODO: make this a conf param
@@ -70,9 +70,9 @@ def __main__():
     # 60 seconds / requests_per_minute in ns + 1 second
     nspr = (60*10**9) / int(worker_config['rpm']) + 10**9
     running = True
-    last_check_s = 0
+    last_check_s = 1745891100
     while running:
-        all_tasks = sorted(filter(lambda t: int(t['target_key_v']) > 324500 and 'start' not in t and t['target_attr'] in attr_list, db.all(llm_task_meta, last_check_s)), key=lambda t: int(t['target_key_v']), reverse=False)
+        all_tasks = sorted(filter(lambda t: int(t['target_key_v']) > 325001 and 'start' not in t and t['target_attr'] in attr_list, db.all(llm_task_meta, last_check_s)), key=lambda t: int(t['target_key_v']), reverse=False)
         for target_attr in attr_list:
             for llm_task in filter(lambda t: target_attr == t['target_attr'], all_tasks):
                 print(f"Checking task for {llm_task['target_key_v']}")

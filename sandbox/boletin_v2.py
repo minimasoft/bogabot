@@ -126,11 +126,14 @@ class ScanMachine(StateMachine):
             if self._current_id > (self._scan_start_id+ScanMachine.MAX_DISTANCE):
                 self._current_id = self._scan_start_id
             if self._norm_online_peek(self._current_id):
+                print("hit")
                 # backtrack to the exact beginning of the new block
                 while self._norm_online_peek(self._current_id - 1) == True:
+                    if self._current_id <= self._scan_start_id:
+                        break
                     self._current_id -= 1
                 return {
-                    'target_id' : self._current_id
+                    'last_id' : self._current_id
                 }
             self._current_id += ScanMachine.STEP
             sleep(1)
@@ -143,7 +146,7 @@ class LoadMachine(StateMachine):
         StateMachine.__init__(self)
         self._current_id = state['last_id']        
         self.norm_online_load = norm_online_load
-        self.norm_save = norm_save
+        self.norm_db_save = norm_db_save
         print(f"loader will start at {self._current_id}")
 
     def run(self, signaling):
