@@ -425,39 +425,35 @@ class AnalysisTask(LLMTask):
         for ref in norm['law_ref']:
             if 'infolegs' in ref:
                 for infoleg in ref['infolegs']:
-                    infolegs.add(infoleg)
+                    infolegs.add((infoleg, f"Ley {ref['ref']}"))
         for ref in norm['decree_ref']:
             if 'infolegs' in ref:
                 for infoleg in ref['infolegs']:
-                    infolegs.add(infoleg)
+                    infolegs.add((infoleg, f"Decreto {ref['ref']}"))
         print(f"trying to load: {list(infolegs)}")
         all_contexts = {}
-        for infoleg_id in infolegs:
-            infoleg_file = Path(f"../data/infoleg_html/{infoleg_id[-1]}/{infoleg_id}.html")
+        for infoleg_id, text_ref in infolegs:
+            infoleg_file = Path(f"../data/infoeg_html/{infoleg_id[-1]}/{infoleg_id}.html")
             if infoleg_file.exists():
                 with open(infoleg_file, 'r', encoding='utf-8') as infoleg_html:
                     info_soup = BeautifulSoup(infoleg_html, 'html.parser')
-                    all_contexts[infoleg_id] = info_soup.text
+                    all_contexts[(infoleg_id, text_ref)] = info_soup.text
 
         official_id = norm['official_id'].split(' ')[0]
-        prompt = "A continuación las leyes y decretos de contexto, el comienzo de cada una se marca con !CONTEXT_START y el final con !CONTEXT_END.\n"
-        for context_id in all_contexts.keys():
-            prompt += f"!CONTEXT_START\n{all_contexts[context_id]}\n!CONTEXT_END\n"
-        prompt += f"Esta es la norma nueva a analizar ({official_id}):\n```{norm_text(norm)}\n```\n"
-        prompt += f"Crear un análisis mostrando como la nueva norma afecta a las normas anteriores. Incluir análisis de derechos afectados y posibles abusos con la nueva normativa."
-        if len(prompt) > 128000*3.5: #TODO: improve heuristic for map-reduce
-            prompts = {}
-            for context_id in all_contexts.keys():
-                prompts[context_id] = "A continuacion reglamentación de contexto, empieza en !CONTEXT_START y termina en !CONTEXT_END.\n"
-                prompts[context_id] += f"!CONTEXT_START\n{all_contexts[context_id]}\n!CONTEXT_END\n"
-                prompts[context_id] += f"Crear un resumen de la norma de contexto teniendo en cuenta puntos que podrían ser importantes para la siguiente norma, delimitada entre !NORM_START y !NORM_END.\n"
-                prompts[context_id] += f"!NORM_START\n{norm_text(norm)}\n!NORM_END\n"
-            prompts['reducer'] = "A continuación el contexto:\n```\n_reducer_\n```\n"
-            prompts['reducer'] += f"Esta es la nueva norma ({official_id}):\n```{norm_text(norm)}\n```\n"
-            prompts['reducer'] += "Crear un análisis de impacto de la nueva norma. En caso de ser necesario explicar como la nueva norma afecta a las anteriores. Mencionar también derechos afectados y posibles abusos con la nueva norma.\n"
-            return prompts
-        else:
-            return prompt
+        prompts = {}
+        prompts['constitution'] = "A continuación la constitución nacional de Argentina entre !CONST_START y !CONST_END:\n"
+        prompts['constitution'] += f"!CONST_START\n{constitucion_ref()}\n!CONST_END\n"
+        prompts['constitution'] += f"Crear un resumen referenciando cada artículo de la constitución que sea reelevante para un futuro análisis de la siguiente norma (delimitada entre !NORM_START y !NORM_END):\n"
+        prompts['constitution'] += f"!NORM_START\n{norm_text(norm)}\n!NORM_END\n"
+        for context_id, context_ref in all_contexts.keys():
+            prompts[context_id] = f"A continuacion {context_ref}, empieza en !CONTEXT_START y termina en !CONTEXT_END.\n"
+            prompts[context_id] += f"!CONTEXT_START\n{all_contexts[context_id]}\n!CONTEXT_END\n"
+            prompts[context_id] += f"Crear un resumen referenciando cada artículo reelevante de {context_ref} para un futuro análisis de la siguiente norma (delimitada entre !NORM_START y !NORM_END):\n"
+            prompts[context_id] += f"!NORM_START\n{norm_text(norm)}\n!NORM_END\n"
+        prompts['reducer'] = "A continuación el contexto resumido:\n```\n_reducer_\n```\n"
+        prompts['reducer'] += f"Esta es la nueva norma ({official_id}):\n```{norm_text(norm)}\n```\n"
+        prompts['reducer'] += "Crear un análisis de la nueva norma. En caso de ser necesario explicar como la nueva norma afecta a las anteriores. Mencionar también derechos afectados y posibles abusos con la nueva norma.\n"
+        return prompts
 
 
 class ConstitutionalTask(LLMTask):
