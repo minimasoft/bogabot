@@ -70,9 +70,9 @@ def __main__():
     # 60 seconds / requests_per_minute in ns + 1 second
     nspr = (60*10**9) / int(worker_config['rpm']) + 10**9
     running = True
-    last_check_s = 1745891100
+    last_check_s = 1746991100
     while running:
-        all_tasks = sorted(filter(lambda t: int(t['target_key_v']) > 325001 and 'start' not in t and t['target_attr'] in attr_list, db.all(llm_task_meta, last_check_s)), key=lambda t: int(t['target_key_v']), reverse=False)
+        all_tasks = sorted(filter(lambda t: int(t['target_key_v']) > 325761 and 'start' not in t and t['target_attr'] in attr_list, db.all(llm_task_meta, last_check_s)), key=lambda t: int(t['target_key_v']), reverse=False)
         for target_attr in attr_list:
             for llm_task in filter(lambda t: target_attr == t['target_attr'], all_tasks):
                 print(f"Checking task for {llm_task['target_key_v']}")
@@ -105,9 +105,9 @@ def __main__():
                     reduce_context = ""
                     for k in prompt.keys():
                         n = len(prompt[k])
-                        print('v'*12)
+                        print('v'*11)
                         print(f"  {n}")
-                        print('^'*12)
+                        print('^'*11)
                         if n > 419999:
                             print("TODO: exta-big law... Can't crunch now. GRRRR")
                             print(k)

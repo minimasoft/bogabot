@@ -443,7 +443,7 @@ class AnalysisTask(LLMTask):
         prompts = {}
         prompts['constitution'] = "A continuación la constitución nacional de Argentina entre !CONST_START y !CONST_END:\n"
         prompts['constitution'] += f"!CONST_START\n{constitucion_ref()}\n!CONST_END\n"
-        prompts['constitution'] += f"Crear un resumen referenciando cada artículo de la constitución que sea reelevante para un futuro análisis de la siguiente norma (delimitada entre !NORM_START y !NORM_END):\n"
+        prompts['constitution'] += f"Crear una selección referenciada de cada artículo de la constitución que sea reelevante para un futuro análisis de la siguiente norma (delimitada entre !NORM_START y !NORM_END):\n"
         prompts['constitution'] += f"!NORM_START\n{norm_text(norm)}\n!NORM_END\n"
         for context_id, context_ref in all_contexts.keys():
             parts = []
@@ -451,8 +451,10 @@ class AnalysisTask(LLMTask):
             idx = 0
             delims = ['\nARTÍCULO','\nArt.','\nArtículo','ARTÍCULO','Art.','Artículo','\n',' ']
             while (len(data) - idx) > 65535:
+                print(f"debug idx={idx}")
                 for delim in delims: 
-                    edx = data.rfind(delim, idx, idx+65534)
+                    edx = data.rfind(delim, idx+1, idx+65534)
+                    print(f"debug delim={delim} edx={edx}")
                     if edx != -1:
                         break
                 if edx == -1:
@@ -470,7 +472,7 @@ class AnalysisTask(LLMTask):
                 i += 1
         prompts['reducer'] = "A continuación el contexto resumido:\n```\n_reducer_\n```\n"
         prompts['reducer'] += f"Esta es la nueva norma ({official_id}):\n```{norm_text(norm)}\n```\n"
-        prompts['reducer'] += f"Crear un análisis de {official_id}. En caso de ser necesario explicar como la nueva norma afecta a las anteriores. Mencionar también derechos afectados y posibles abusos con la nueva norma.\n"
+        prompts['reducer'] += f"Crear un análisis legal de {official_id}. En caso de ser necesario explicar como la nueva norma afecta a las anteriores. Mencionar también derechos afectados, irregularidades y posibles abusos con la nueva norma.\n"
         return prompts
 
 
