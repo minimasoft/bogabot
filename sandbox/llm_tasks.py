@@ -472,7 +472,7 @@ class AnalysisTask(LLMTask):
                 i += 1
         prompts['reducer'] = "A continuación el contexto resumido:\n```\n_reducer_\n```\n"
         prompts['reducer'] += f"Esta es la nueva norma ({official_id}):\n```{norm_text(norm)}\n```\n"
-        prompts['reducer'] += f"Crear un análisis legal de {official_id}. En caso de ser necesario explicar como la nueva norma afecta a las anteriores. Mencionar también derechos afectados, irregularidades y posibles abusos con la nueva norma.\n"
+        prompts['reducer'] += f"Crear un análisis legal de {official_id}. En caso de ser necesario explicar como la nueva norma afecta a las anteriores. Mencionar también derechos afectados, irregularidades y posibles abusos con la nueva norma. Presta especial atención a solo citar en base al contexto provisto para evitar alucinaciones.\n"
         return prompts
 
 

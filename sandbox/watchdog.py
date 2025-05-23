@@ -23,6 +23,9 @@ def check_dead_tasks(db, task_meta: FileDBMeta, since_s: float=0.0, timeout_s: f
         if 'start' in task and 'end' not in task:
             start = int(task['start'])
             elapsed_s = (time_ns() - int(task['start']))/10.0**9
+            timeout_fix_s = timeout_s
+            if task['target_attr'] == 'analysis':
+                timeout_fix_s += 300
             if elapsed_s > timeout_s:
                 unresponsive = unresponsive + 1
                 print(
