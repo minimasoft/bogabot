@@ -446,10 +446,28 @@ class AnalysisTask(LLMTask):
         prompts['constitution'] += f"Crear un resumen referenciando cada artículo de la constitución que sea reelevante para un futuro análisis de la siguiente norma (delimitada entre !NORM_START y !NORM_END):\n"
         prompts['constitution'] += f"!NORM_START\n{norm_text(norm)}\n!NORM_END\n"
         for context_id, context_ref in all_contexts.keys():
-            prompts[context_id] = f"A continuacion {context_ref}, empieza en !CONTEXT_START y termina en !CONTEXT_END.\n"
-            prompts[context_id] += f"!CONTEXT_START\n{all_contexts[context_id]}\n!CONTEXT_END\n"
-            prompts[context_id] += f"Crear un resumen referenciando cada artículo reelevante de {context_ref} para un futuro análisis de la siguiente norma (delimitada entre !NORM_START y !NORM_END):\n"
-            prompts[context_id] += f"!NORM_START\n{norm_text(norm)}\n!NORM_END\n"
+            parts = []
+            data = all_contexts[context_id]
+            idx = 0
+            delims = ['Art', '\n', ' ']
+            while (len(data) - idx) > 65535:
+                for delim in delims: 
+                    edx = data.rfind(delim, idx, idx+65534)
+                    if edx != -1:
+                        break
+                if edx == -1:
+                    print("Forced split")
+                    edx = 65534
+                parts.append(data[idx:edx])
+                idx = edx
+            parts.append(data[idx:])
+            i = 0
+            for part in parts:
+                prompts[f"{context_id}_{i}"] = f"A continuacion texto de {context_ref}, empieza en !CONTEXT_START y termina en !CONTEXT_END.\n"
+                prompts[f"{context_id}_{i}"] += f"!CONTEXT_START\n{part}\n!CONTEXT_END\n"
+                prompts[f"{context_id}_{i}"] += f"Crear un resumen referenciando cada artículo reelevante de {context_ref} para un futuro análisis de la siguiente norma (delimitada entre !NORM_START y !NORM_END):\n"
+                prompts[f"{context_id}_{i}"] += f"!NORM_START\n{norm_text(norm)}\n!NORM_END\n"
+                i += 1
         prompts['reducer'] = "A continuación el contexto resumido:\n```\n_reducer_\n```\n"
         prompts['reducer'] += f"Esta es la nueva norma ({official_id}):\n```{norm_text(norm)}\n```\n"
         prompts['reducer'] += "Crear un análisis de la nueva norma. En caso de ser necesario explicar como la nueva norma afecta a las anteriores. Mencionar también derechos afectados y posibles abusos con la nueva norma.\n"
