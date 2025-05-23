@@ -5,3 +5,4 @@
 - Add generic worker code (process signal processing, auto-update)
 - Add support for resolution linking with fetch & cleanup (in progress)
 - Add cross-reference for recent decrees with ext_id
+- Improve map-reduce analysis with parallelism and partial-save
