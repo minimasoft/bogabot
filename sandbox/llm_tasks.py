@@ -433,7 +433,7 @@ class AnalysisTask(LLMTask):
         print(f"trying to load: {list(infolegs)}")
         all_contexts = {}
         for infoleg_id, text_ref in infolegs:
-            infoleg_file = Path(f"../data/infoeg_html/{infoleg_id[-1]}/{infoleg_id}.html")
+            infoleg_file = Path(f"../data/infoleg_html/{infoleg_id[-1]}/{infoleg_id}.html")
             if infoleg_file.exists():
                 with open(infoleg_file, 'r', encoding='utf-8') as infoleg_html:
                     info_soup = BeautifulSoup(infoleg_html, 'html.parser')
@@ -447,9 +447,9 @@ class AnalysisTask(LLMTask):
         prompts['constitution'] += f"!NORM_START\n{norm_text(norm)}\n!NORM_END\n"
         for context_id, context_ref in all_contexts.keys():
             parts = []
-            data = all_contexts[context_id]
+            data = all_contexts[(context_id, context_ref)]
             idx = 0
-            delims = ['Art', '\n', ' ']
+            delims = ['\nARTÍCULO','\nArt.','\nArtículo','ARTÍCULO','Art.','Artículo','\n',' ']
             while (len(data) - idx) > 65535:
                 for delim in delims: 
                     edx = data.rfind(delim, idx, idx+65534)
@@ -470,7 +470,7 @@ class AnalysisTask(LLMTask):
                 i += 1
         prompts['reducer'] = "A continuación el contexto resumido:\n```\n_reducer_\n```\n"
         prompts['reducer'] += f"Esta es la nueva norma ({official_id}):\n```{norm_text(norm)}\n```\n"
-        prompts['reducer'] += "Crear un análisis de la nueva norma. En caso de ser necesario explicar como la nueva norma afecta a las anteriores. Mencionar también derechos afectados y posibles abusos con la nueva norma.\n"
+        prompts['reducer'] += f"Crear un análisis de {official_id}. En caso de ser necesario explicar como la nueva norma afecta a las anteriores. Mencionar también derechos afectados y posibles abusos con la nueva norma.\n"
         return prompts
 
 
