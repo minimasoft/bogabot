@@ -118,6 +118,7 @@ class ScanMachine(StateMachine):
             self._current_id += 1
         self._scan_start_id = self._current_id
         self._norm_online_peek = norm_online_peek
+        self._norm_db_load = norm_db_load
         print(f"scanner will start at {self._scan_start_id} from tip at {self._user_start_id}")
 
 
@@ -142,23 +143,26 @@ class ScanMachine(StateMachine):
 
 
 class LoadMachine(StateMachine):
-    def __init__(self, state, norm_online_load, norm_db_save):
+    def __init__(self, state, norm_online_load, norm_db_save, norm_db_load):
         StateMachine.__init__(self)
         self._current_id = state['last_id']        
+        self.norm_db_load = norm_db_load
         self.norm_online_load = norm_online_load
         self.norm_db_save = norm_db_save
         print(f"loader will start at {self._current_id}")
 
     def run(self, signaling):
         while signaling['running']:
-            norm = self.norm_online_load(self._current_id)
-            if norm != None:
-                print(f"new norm:\n{norm['ext_id']}")
-                self.norm_db_save(norm)
-            else:
-                return {
-                    'last_id': self._current_id - 1
-                }
+            norm_prev = self.norm_db_load(self._current_id)
+            if norm_prev == {}:
+                norm = self.norm_online_load(self._current_id)
+                if norm != None:
+                    print(f"new norm:\n{norm['ext_id']}")
+                    self.norm_db_save(norm)
+                else:
+                    return {
+                        'last_id': self._current_id - 1
+                    }
             self._current_id += 1
             sleep(0.3)
         return False
@@ -199,14 +203,14 @@ def main():
         file_db.write(norm)
 
     state = {
-        'last_id': 325654
+        'last_id': 325977
     }
 
     while signaling['running']:
         scanner = ScanMachine(state, norm_db_load, norm_online_peek)
         state = scanner.run(signaling)
         if state:
-            loader = LoadMachine(state, norm_online_load, norm_db_save)
+            loader = LoadMachine(state, norm_online_load, norm_db_save, norm_db_load)
             state = loader.run(signaling)
 
 

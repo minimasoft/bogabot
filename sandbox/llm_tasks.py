@@ -133,10 +133,10 @@ class BriefTask(LLMTask):
 
     def _query(self, norm: dict) -> str:
         prompt = f"""
-Crear un resumen bajo las siguientes consignas:
-- Menciona a todos los firmantes por apellido.
+Crear un resumen siguiendo estas consignas:
 - Si es una designacion de personal solo menciona a las personas involucradas y sus roles.
 - Si hay datos tabulados solo menciona su existencia. 
+- Menciona a todos los firmantes por apellido.
 - Solo escribe el resumen, no ofrezcas mas ayuda, la respuesta es final.
 - El resumen debe tener máximo {self.max_len} caracteres.
 - No mencionar que es un resumen.
@@ -147,9 +147,9 @@ Norma a resumir:
 """
         prompt += norm_text(norm) + "\n```\n"
 
-        context = mapa_context
+        #context = mapa_context
 
-        return context + prompt
+        return prompt
     
     def _filter(self, llm_output:str) -> str:
         if len(llm_output) > self.max_len*self.tolerance:
@@ -407,18 +407,20 @@ class AnalysisTask(LLMTask):
             raise NotEnoughData
         if 'decree_ref' not in norm:
             raise NotEnoughData
-        tag_filter = all(tag not in ['#edicto','#designacion','#cese','#inscripcion','#renuncia','#multa', '#recurso_administrativo'] for tag in norm['tags'])# or '#presidencial' in norm['tags']
+        tag_filter = all(tag not in ['#edicto','#designacion','#cese','#inscripcion','#renuncia','#multa'] for tag in norm['tags'])# or '#presidencial' in norm['tags']
         subjects_out = [
             "BANCO CENTRAL",
             "BANCO DE LA NACI",
             "ADUANERO",
-            "ASOCIATIVISMO"
+            "ASOCIATIVISMO",
+            "PROCEDIMIENTOS ADMINISTRATIVOS",
+            "ENTE NACIONAL REGULADOR DE LA ELECTRICIDAD"
         ]
         subjects_filter = all([
             norm['subject'].find(subject) == -1
             for subject in subjects_out
         ])
-        return norm['official_id'] != "" and tag_filter and subjects_filter
+        return norm['official_id'] != "" and (norm['official_id'].startswith('DI-')==False) and tag_filter and subjects_filter
 
     def _query(self, norm: dict) -> str:
         infolegs = set()

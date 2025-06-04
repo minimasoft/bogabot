@@ -33,7 +33,7 @@ def main():
             pass
         elif 'vialidad' in norm['subject'].lower():
             total_2025_vialidad += 1
-            if '#multa' in norm['tags']:
+            if 'tags' in norm and '#multa' in norm['tags']:
                 if 'fine_list' in norm:
                     for fine in norm['fine_list']:
                         fine['date'] = norm['publish_date']

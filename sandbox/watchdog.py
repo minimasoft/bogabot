@@ -25,8 +25,8 @@ def check_dead_tasks(db, task_meta: FileDBMeta, since_s: float=0.0, timeout_s: f
             elapsed_s = (time_ns() - int(task['start']))/10.0**9
             timeout_fix_s = timeout_s
             if task['target_attr'] == 'analysis':
-                timeout_fix_s += 300
-            if elapsed_s > timeout_s:
+                timeout_fix_s += 900 # Analysis are really slow now :(
+            if elapsed_s > timeout_fix_s:
                 unresponsive = unresponsive + 1
                 print(
                     f"'{task['target_type']}[{task['target_key_v']}].{task['target_attr']}'" +\
@@ -58,7 +58,7 @@ def main(argv: list) -> int:
         print(f"[{ctime()}]: Watching from pid:{os.getpid()}...")
         llm_task_check_time_s = check_dead_tasks(db, llm_task_meta, since_s=llm_task_check_time_s)
         #check_locks(db)
-        sleep(3.14)
+        sleep(6.28)
     return 0
 
 

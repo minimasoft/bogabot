@@ -11,7 +11,7 @@ from time import time_ns, sleep
 from file_db import FileDB, FileDBMeta
 from global_config import gconf
 from llm_tasks import get_llm_task_map, NotEnoughData, BadLLMData
-
+import concurrent.futures
 from openai import OpenAI
 
 def load_json(fpath):
@@ -29,12 +29,13 @@ wait_cycle_s = 5.0
 def query_deep(prompt:str) -> str:
     global worker_config
     if len(prompt) > int(worker_config['num_ctx'])*3.5:
-        print(f"Context too big for this worker({model_name}): {len(prompt)}")
+        print(f"Context too big for this worker({worker_config['model']}): {len(prompt)}")
         raise Exception
     client = OpenAI(
         api_key=worker_config['api_key'],
         base_url=worker_config['base_url']
     )
+
     response = client.chat.completions.create(
         model=worker_config['model'],
 #        service_tier="flex",
@@ -42,7 +43,7 @@ def query_deep(prompt:str) -> str:
             {"role": "system", "content": "You are a helpful law research asistant for Argentina. Make sure to write answers in spanish only."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.6, # TODO: make this a conf param
+        temperature=0.42, # TODO: make this a conf param
         stream=False
     )
     llm_response = response.choices[0].message.content
@@ -70,9 +71,9 @@ def __main__():
     # 60 seconds / requests_per_minute in ns + 1 second
     nspr = (60*10**9) / int(worker_config['rpm']) + 10**9
     running = True
-    last_check_s = 1746991100
+    last_check_s = 1748960000
     while running:
-        all_tasks = sorted(filter(lambda t: int(t['target_key_v']) > 325799 and 'start' not in t and t['target_attr'] in attr_list, db.all(llm_task_meta, last_check_s)), key=lambda t: int(t['target_key_v']), reverse=False)
+        all_tasks = sorted(filter(lambda t: int(t['target_key_v']) > 326410 and 'start' not in t and t['target_attr'] in attr_list, db.all(llm_task_meta, last_check_s)), key=lambda t: int(t['target_key_v']), reverse=False)
         for target_attr in attr_list:
             for llm_task in filter(lambda t: target_attr == t['target_attr'], all_tasks):
                 print(f"Checking task for {llm_task['target_key_v']}")
@@ -103,40 +104,52 @@ def __main__():
                     print('-'*80)
                     reducer = prompt.pop('reducer')
                     reduce_context = ""
-                    for k in prompt.keys():
-                        n = len(prompt[k])
-                        print('v'*11)
-                        print(f"  {n}")
-                        print('^'*11)
-                        if n > 419999:
-                            print("TODO: exta-big law... Can't crunch now. GRRRR")
-                            print(k)
-                        else:
-                            more_context = ""
-                            retry = 2 
-                            while more_context == "" and retry >= 0:
-                                try:
-                                    more_context = query_deep(prompt[k])
-                                except Exception as e:
-                                    print(e)
-                                    print("WILL RETRY")
-                                    sleep(1)
-                                    retry = retry - 1
-                            reduce_context += more_context
-                            reduce_context += "\n"
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                        results = []
+                        for k in prompt.keys():
+                            n = len(prompt[k])
+                            if n > 419999:
+                                print("TODO: exta-big law... Can't crunch now. GRRRR")
+                                print(k)
+                                continue
+
+                            def get_context_chunk(prompt):
+                                result = ""
+                                retries = 3
+                                while result == "" and retries > 0:
+                                    try:
+                                        result = query_deep(prompt)
+                                    except Exception:
+                                        retries -=1
+                                return result
+
+                            results.append(executor.submit(get_context_chunk, prompt[k]))
+                            print(f"queued {n} context for {k}")
+
+                        for future in concurrent.futures.as_completed(results):
+                            reduce_context += future.result()
+                            reduce_context += "\n\n"
                     reducer = reducer.replace('_reducer_', reduce_context)
                     print(reducer)
                     print('='*80)
-                    try:
-                        llm_output = query_deep(reducer)
-                    except Exception as e:
-                        print(e)
-                        print("WILL RETRY!!!")
-                        sleep(1)
-                        llm_output = query_deep(reducer)
+                    llm_output = ""
+                    retry=5
+                    while llm_output == "" and retry >= 0:
+                        try:
+                            llm_output = query_deep(reducer)
+                        except Exception as e:
+                            print(e)
+                            print("WILL RETRY!!!")
+                            sleep(1)
+                            retry -=1
 
                 else:
-                    llm_output = query_deep(prompt)
+                    try:
+                        llm_output = query_deep(prompt)
+                    except Exception as e:
+                        print(e)
+                        continue
+
 
                 llm_task['end'] = str(time_ns())
                 llm_task['model'] = worker_config['model']
@@ -158,6 +171,7 @@ def __main__():
                 # only write llm_task with 'end' after storing the result
                 db.write(llm_task)
                 # rate_limit if needed
+                sleep(1)
 
         print(f"Task cycle done. Will re-scan in {wait_cycle_s:.2f} seconds...")
         sleep(wait_cycle_s)
