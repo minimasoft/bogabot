@@ -1,9 +1,9 @@
 [project]
 name = "boletinoficial-monitor"
 version = "0.1.0"
-description = "holi"
+description = "boletinoficial.gob.ar decree extractor"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = "==3.13.3"
 dependencies = [
   "beautifulsoup4==4.13.3",
   "requests==2.32.4",

@@ -67,7 +67,7 @@ def main():
     print("joining for norms")
     norm_saver.join()
 
-    task_db = server.database('bogabot_v0_llm_task')
+   # task_db = server.database('bogabot_v0_llm_task')
     task_saver = db_saver('bogabot_v0_llm_task')
     for llm_task in file_db.all(llm_task_meta, since_s=last_time):
         llm_task['_id'] = str(llm_task['task_key'])
