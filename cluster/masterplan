@@ -1,0 +1,6 @@
+- use helm chart
+- use helm secrets
+- use skaffold
+
+-> goal 1: boletin scan + opensearch
+
