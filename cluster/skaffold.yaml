@@ -16,8 +16,7 @@ build:
 
 manifests:
   kpt:
-    paths:
-      - k8s/bogabot
+    - k8s/bogabot
 
 deploy:
   kubectl: {}
