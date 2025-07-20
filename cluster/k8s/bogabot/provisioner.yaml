@@ -1,0 +1,42 @@
+# provisioner.yaml: Defines our custom Python service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bogabot-provisioner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bogabot-provisioner
+  template:
+    metadata:
+      labels:
+        app: bogabot-provisioner
+    spec:
+      containers:
+      - name: bogabot-provisioner
+        # Skaffold will replace this with the built image digest
+        image: bogabot-provisioner
+        env:
+        - name: OPENSEARCH_HOST
+          value: "opensearch-svc"
+        - name: KEYCLOAK_URL
+          value: "http://keycloak-svc:8080"
+        - name: KEYCLOAK_ADMIN_USER
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-secret
+              key: KEYCLOAK_ADMIN
+        - name: KEYCLOAK_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-secret
+              key: KEYCLOAK_ADMIN_PASSWORD
+        # Add OpenSearch credentials
+        - name: OPENSEARCH_ADMIN_USER
+          value: "admin"
+        - name: OPENSEARCH_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: opensearch-secret
+              key: OPENSEARCH_INITIAL_ADMIN_PASSWORD

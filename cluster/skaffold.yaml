@@ -1,0 +1,46 @@
+apiVersion: skaffold/v4beta12
+kind: Config
+metadata:
+  name: k8s-py-auth-db-stack
+
+build:
+  artifacts:
+    - image: bogabot-provisioner
+      context: provisioner
+      docker:
+        dockerfile: Dockerfile
+    - image: boletinoficial-monitor
+      context: boletinoficial-monitor
+      docker:
+        dockerfile: Dockerfile
+
+manifests:
+  kpt:
+    paths:
+      - k8s/bogabot
+
+deploy:
+  kubectl: {}
+
+# Port-forwarding to access services from your local machine
+portForward:
+  - resourceType: service
+    resourceName: keycloak-svc
+    port: 8080
+    localPort: 8080
+  - resourceType: service
+    resourceName: opensearch-svc
+    port: 9200
+    localPort: 9200
+  - resourceType: service
+    resourceName: minio-svc
+    port: 9000 # API port
+    localPort: 9000
+  - resourceType: service
+    resourceName: minio-svc
+    port: 9001 # Console port
+    localPort: 9001
+  - resourceType: service
+    resourceName: redis-svc
+    port: 6379
+    localPort: 6379

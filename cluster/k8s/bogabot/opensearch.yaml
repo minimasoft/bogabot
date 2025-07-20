@@ -1,0 +1,87 @@
+# opensearch.yaml: Defines the OpenSearch stateful service
+apiVersion: v1
+kind: Secret
+metadata:
+  name: opensearch-secret
+type: Opaque
+data:
+  # Example: echo -n 'myStrongPassword123!' | base64
+  OPENSEARCH_INITIAL_ADMIN_PASSWORD: bXlTdHJvbmdQYXNzd29yZDEyMyE= # Default: myStrongPassword123!
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opensearch-svc
+spec:
+  ports:
+  - port: 9200
+    name: rest
+  - port: 9600
+    name: transport
+  clusterIP: None # Headless service for StatefulSet
+  selector:
+    app: opensearch
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: opensearch
+spec:
+  serviceName: opensearch-svc
+  replicas: 1 # For a basic setup, 1 is enough. Use 3 for a real cluster.
+  selector:
+    matchLabels:
+      app: opensearch
+  template:
+    metadata:
+      labels:
+        app: opensearch
+    spec:
+      containers:
+      - name: opensearch
+        image: opensearchproject/opensearch:2.11.0
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+        ports:
+        - containerPort: 9200
+          name: rest
+        - containerPort: 9600
+          name: transport
+        env:
+          # A single-node cluster.
+          - name: cluster.name
+            value: "opensearch-cluster"
+          - name: node.name
+            value: "opensearch-node1"
+          - name: discovery.seed_hosts
+            value: "opensearch-0.opensearch-svc"
+          - name: cluster.initial_cluster_manager_nodes
+            value: "opensearch-node1"
+          # Enable security and set initial password
+          - name: "plugins.security.disabled"
+            value: "false"
+          - name: OPENSEARCH_INITIAL_ADMIN_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: opensearch-secret
+                key: OPENSEARCH_INITIAL_ADMIN_PASSWORD
+          # Set heap size
+          - name: "OPENSEARCH_JAVA_OPTS"
+            value: "-Xms512m -Xmx512m"
+        volumeMounts:
+        - name: opensearch-data
+          mountPath: /usr/share/opensearch/data
+  volumeClaimTemplates:
+  - metadata:
+      name: opensearch-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: standard # Make sure you have a default storage class
+      resources:
+        requests:
+          storage: 10Gi

@@ -1,0 +1,8 @@
+[project]
+name = "bogabot-provisioner"
+version = "0.1.0"
+description = "It provisions all services with the required goods (="
+readme = "README.md"
+requires-python = "==3.13.3"
+dependencies = [
+]

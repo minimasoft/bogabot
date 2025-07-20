@@ -1,0 +1,86 @@
+# minio.yaml: Defines the MinIO object storage service
+apiVersion: v1
+kind: Secret
+metadata:
+  name: minio-secret
+type: Opaque
+data:
+  # IMPORTANT: Replace with your own base64 encoded values.
+  # MinIO requires keys to be at least 3 characters and secrets to be at least 8.
+  # Example: echo -n 'minioadmin' | base64
+  # Example: echo -n 'minioadmin123' | base64
+  MINIO_ROOT_USER: bWluaW9hZG1pbg== # Default: minioadmin
+  MINIO_ROOT_PASSWORD: bWluaW9hZG1pbjEyMw== # Default: minioadmin123
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-svc
+spec:
+  ports:
+    - name: api
+      port: 9000
+      targetPort: 9000
+    - name: console
+      port: 9001
+      targetPort: 9001
+  selector:
+    app: minio
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+      - name: minio
+        image: quay.io/minio/minio:RELEASE.2025-07-18T21-56-31Z
+        command:
+          - /bin/bash
+          - -c
+          - |
+            minio server /data --console-address ":9001"
+        env:
+        - name: MINIO_ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret
+              key: MINIO_ROOT_USER
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret
+              key: MINIO_ROOT_PASSWORD
+        ports:
+        - containerPort: 9000
+          name: api
+        - containerPort: 9001
+          name: console
+        volumeMounts:
+        - name: minio-data
+          mountPath: "/data"
+      volumes:
+      - name: minio-data
+        persistentVolumeClaim:
+          claimName: minio-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard
