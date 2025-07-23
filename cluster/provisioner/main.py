@@ -1,13 +1,13 @@
 # Copyright Minimasoft (c) 2025
 
-import requests
-from bs4 import BeautifulSoup
 from pathlib import Path
+from time import sleep
 
 
 def main():
     print("holi")
     print(list(Path("/usr/bin").glob('*')))
+    sleep(999)
 
 
 if __name__ == "__main__":

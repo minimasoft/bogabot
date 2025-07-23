@@ -1,12 +1,13 @@
 FROM ghcr.io/astral-sh/uv:alpine@sha256:abba5681efde355627953bb7a07b5091292628a071ebfe3ca3929fe3edb248b1 AS builder
 
 RUN adduser -D pyuser
+RUN mkdir /home/pyuser/app && chown -R pyuser:pyuser /home/pyuser/*
 
 USER pyuser
 
 WORKDIR /home/pyuser/app
 
-COPY pyproject.toml uv.lock .
+COPY pyproject.toml uv.lock ./
 
 RUN uv sync
 
@@ -21,9 +22,9 @@ COPY --from=builder /home/pyuser/.local /home/pyuser/.local
 
 WORKDIR /home/pyuser/app
 
-COPY --from=builder /home/pyuser/app .
+COPY --from=builder /home/pyuser/app ./
 
-COPY *.py .
+COPY *.py ./
 
 #TODO: user
 CMD ["/home/pyuser/app/.venv/bin/python", "/home/pyuser/app/main.py"]
