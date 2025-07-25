@@ -1,4 +1,3 @@
-# minio.yaml: Defines the MinIO object storage service
 apiVersion: v1
 kind: Secret
 metadata:

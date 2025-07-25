@@ -6,8 +6,8 @@ from time import sleep
 
 def main():
     print("holi")
-    print(list(Path("/usr/bin").glob('*')))
-    sleep(999)
+    sleep(9999)
+    print("chau")
 
 
 if __name__ == "__main__":

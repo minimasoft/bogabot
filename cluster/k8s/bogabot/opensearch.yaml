@@ -1,4 +1,3 @@
-# opensearch.yaml: Defines the OpenSearch stateful service
 apiVersion: v1
 kind: Secret
 metadata:

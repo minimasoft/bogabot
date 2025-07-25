@@ -40,12 +40,12 @@ spec:
         image: quay.io/keycloak/keycloak:26.3
         args: ["start-dev"]
         env:
-        - name: KEYCLOAK_ADMIN
+        - name: KC_BOOTSTRAP_ADMIN_USERNAME
           valueFrom:
             secretKeyRef:
               name: keycloak-secret
               key: KEYCLOAK_ADMIN
-        - name: KEYCLOAK_ADMIN_PASSWORD
+        - name: KC_BOOTSTRAP_ADMIN_PASSWORD
           valueFrom:
             secretKeyRef:
               name: keycloak-secret
@@ -55,9 +55,9 @@ spec:
         ports:
         - name: http
           containerPort: 8080
-        readinessProbe:
-          httpGet:
-            path: /health/ready
-            port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 10
+#        readinessProbe:
+#          httpGet:
+#            path: /health/ready
+#            port: 9000
+#          initialDelaySeconds: 30
+#          periodSeconds: 10
