@@ -1,4 +1,12 @@
-#!/home/user/src/bogabot/venv/bin/python
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "base58==2.1.1",
+#     "beautifulsoup4==4.13.3",
+#     "requests==2.32.4",
+# ]
+# ///
 # Copyright Minimasoft (c) 2025
 # New BO scrapper that can see the future (tm)
 
@@ -36,7 +44,7 @@ def scan_bo_gob_ar_section_one(current_id, meta, peek=False):
 
     print(f"scanning: {data_link}")
 
-    with session.get(data_link) as response:
+    with session.get(data_link, timeout=(3,10)) as response:
         soup = BeautifulSoup(response.text, 'html.parser')
 
         title_div = soup.find('div', {'id': 'tituloDetalleAviso'})
