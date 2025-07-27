@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: opensearch-dashboard-svc
+spec:
+  ports:
+  - port: 5601
+    targetPort: 5601
+  selector:
+    app: opensearch-dashboard
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opensearch-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opensearch-dashboard
+  template:
+    metadata:
+      labels:
+        app: opensearch-dashboard
+    spec:
+      containers:
+      - name: opensearch-dashboard
+        image: opensearchproject/opensearch-dashboards:3.1.0
+        ports:
+        - containerPort: 5601
+        env:
+        - name: OPENSEARCH_HOSTS
+          value: '["https://opensearch-svc:9200"]'
+        # TODO
+        - name: OPENSEARCH_SSL_VERIFICATIONMODE"
+          value: "none"
+        - name: "OPENSEARCH_USERNAME"
+          valueFrom:
+            secretKeyRef:
+              name: opensearch-secret
+              key: OPENSEARCH_DASHBOARD_USER
+        - name: "OPENSEARCH_PASSWORD"
+          valueFrom:
+            secretKeyRef:
+              name: opensearch-secret
+              key: OPENSEARCH_DASHBOARD_PASSWORD
+        # TODO
+        - name: "DISABLE_SECURITY_DASHBOARDS_PLUGIN"
+          value: true 

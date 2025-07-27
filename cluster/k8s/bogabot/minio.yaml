@@ -27,7 +27,7 @@ spec:
     app: minio
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: minio
 spec:
@@ -67,19 +67,28 @@ spec:
         volumeMounts:
         - name: minio-data
           mountPath: "/data"
-      volumes:
-      - name: minio-data
-        persistentVolumeClaim:
-          claimName: minio-pvc
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: minio-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
-  storageClassName: standard
+#      volumes:
+#      - name: minio-data
+#        persistentVolumeClaim:
+#          claimName: minio-pvc
+  volumeClaimTemplates:
+  - metadata:
+      name: minio-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: standard # Make sure you have a default storage class
+      resources:
+        requests:
+          storage: 10Gi
+#---
+#apiVersion: v1
+#kind: PersistentVolumeClaim
+#metadata:
+#  name: minio-pvc
+#spec:
+#  accessModes:
+#    - ReadWriteOnce
+#  resources:
+#    requests:
+#      storage: 10Gi
+#  storageClassName: standard

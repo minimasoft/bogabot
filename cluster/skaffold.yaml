@@ -32,6 +32,10 @@ portForward:
     port: 9200
     localPort: 9200
   - resourceType: service
+    resourceName: opensearch-dashboard-svc
+    port: 5601
+    localPort: 5601
+  - resourceType: service
     resourceName: minio-svc
     port: 9000 # API port
     localPort: 9000
