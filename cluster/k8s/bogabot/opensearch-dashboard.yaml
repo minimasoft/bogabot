@@ -46,4 +46,4 @@ spec:
               key: OPENSEARCH_DASHBOARD_PASSWORD
         # TODO
         - name: "DISABLE_SECURITY_DASHBOARDS_PLUGIN"
-          value: true 
+          value: "true" 

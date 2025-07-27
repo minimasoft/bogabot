@@ -4,8 +4,9 @@ metadata:
   name: opensearch-secret
 type: Opaque
 data:
-  # Example: echo -n 'myStrongPassword123!' | base64
-  OPENSEARCH_INITIAL_ADMIN_PASSWORD: bXlTdHJvbmdQYXNzd29yZDEyMyE= # Default: myStrongPassword123!
+  OPENSEARCH_ADMIN_PASSWORD: dmVyeVNlY3JldDY3OCE=
+  OPENSEARCH_DASHBOARD_USER: ZGFzaGJvYXJk
+  OPENSEARCH_DASHBOARD_PASSWORD: ZGFzaGJvYXJkLXNlY3JldC02NjY=
 ---
 apiVersion: v1
 kind: Service
@@ -27,7 +28,7 @@ metadata:
   name: opensearch
 spec:
   serviceName: opensearch-svc
-  replicas: 1 # For a basic setup, 1 is enough. Use 3 for a real cluster.
+  replicas: 1
   selector:
     matchLabels:
       app: opensearch
@@ -68,7 +69,7 @@ spec:
             valueFrom:
               secretKeyRef:
                 name: opensearch-secret
-                key: OPENSEARCH_INITIAL_ADMIN_PASSWORD
+                key: OPENSEARCH_ADMIN_PASSWORD
           # Set heap size
           - name: "OPENSEARCH_JAVA_OPTS"
             value: "-Xms512m -Xmx512m"

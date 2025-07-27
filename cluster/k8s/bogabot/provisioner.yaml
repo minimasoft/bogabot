@@ -31,11 +31,22 @@ spec:
             secretKeyRef:
               name: keycloak-secret
               key: KEYCLOAK_ADMIN_PASSWORD
-        # Add OpenSearch credentials
+        - name: OPENSEARCH_URL
+          value: "https://opensearch-svc:9200/"
         - name: OPENSEARCH_ADMIN_USER
           value: "admin"
         - name: OPENSEARCH_ADMIN_PASSWORD
           valueFrom:
             secretKeyRef:
               name: opensearch-secret
-              key: OPENSEARCH_INITIAL_ADMIN_PASSWORD
+              key: OPENSEARCH_ADMIN_PASSWORD
+        - name: OPENSEARCH_DASHBOARD_USER
+          valueFrom:
+            secretKeyRef:
+              name: opensearch-secret
+              key: OPENSEARCH_DASHBOARD_USER
+        - name: OPENSEARCH_DASHBOARD_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: opensearch-secret
+              key: OPENSEARCH_DASHBOARD_PASSWORD
