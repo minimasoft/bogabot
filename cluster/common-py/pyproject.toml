@@ -1,0 +1,11 @@
+[project]
+name = "bogabot-common-py"
+version = "0.1.0"
+description = "All the python code that shouldn't be repeated"
+readme = "README.md"
+requires-python = "==3.13.3"
+dependencies = [
+    "base58>=2.1.1",
+    "opensearch-py>=3.0.0",
+    "requests>=2.32.4",
+]
