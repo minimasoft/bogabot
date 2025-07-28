@@ -34,12 +34,12 @@ spec:
         # TODO
         - name: OPENSEARCH_SSL_VERIFICATIONMODE"
           value: "none"
-        - name: "OPENSEARCH_USERNAME"
+        - name: "_OPENSEARCH_USERNAME"
           valueFrom:
             secretKeyRef:
               name: opensearch-secret
               key: OPENSEARCH_DASHBOARD_USER
-        - name: "OPENSEARCH_PASSWORD"
+        - name: "_OPENSEARCH_PASSWORD"
           valueFrom:
             secretKeyRef:
               name: opensearch-secret

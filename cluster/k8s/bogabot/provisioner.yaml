@@ -17,6 +17,8 @@ spec:
         # Skaffold will replace this with the built image digest
         image: bogabot-provisioner
         env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
         - name: OPENSEARCH_HOST
           value: "opensearch-svc"
         - name: KEYCLOAK_URL
